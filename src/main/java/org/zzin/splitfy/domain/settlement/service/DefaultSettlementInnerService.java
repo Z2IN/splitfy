@@ -1,5 +1,5 @@
 package org.zzin.splitfy.domain.settlement.service;
 
-public class DefaultSettlementInnerService {
+public class DefaultSettlementInnerService implements SettlementInnerService {
 
 }
