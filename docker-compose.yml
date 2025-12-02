@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:18.1-alpine3.22
+    profiles: ["ci"]
     container_name: splitfy-db
     environment:
       POSTGRES_USER: user
