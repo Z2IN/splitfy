@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 import org.zzin.splitfy.domain.settlement.enums.SettlementStatus;
 
 @Getter
@@ -35,7 +35,7 @@ public class Settlement {
   @Column(nullable = false)
   private SettlementStatus status;
 
-  @CreationTimestamp
+  @CreatedDate
   @Column(nullable = false, updatable = false)
   private LocalDateTime issuedAt;
 
