@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 import org.zzin.splitfy.domain.transaction.enums.TransactionType;
 
 @Getter
@@ -41,7 +41,7 @@ public class Transaction {
   @Column(nullable = false)
   private Long afterPoint;
 
-  @CreationTimestamp
+  @CreatedDate
   @Column(nullable = false, updatable = false)
   private LocalDateTime transactionTime;
 
