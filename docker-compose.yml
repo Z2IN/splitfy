@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:18.1-alpine3.22
-    profiles: ["ci"]
+    profiles: ["dev", "ci"]
     container_name: splitfy-db
     environment:
       POSTGRES_USER: user
@@ -20,6 +20,7 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4
+    profiles: ["dev"]
     container_name: splitfy-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@local
