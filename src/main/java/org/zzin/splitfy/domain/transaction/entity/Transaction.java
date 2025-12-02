@@ -10,8 +10,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import org.jspecify.annotations.NullMarked;
 import org.springframework.data.annotation.CreatedDate;
 import org.zzin.splitfy.domain.transaction.enums.TransactionType;
 
@@ -45,6 +48,18 @@ public class Transaction {
   @Column(nullable = false, updatable = false)
   private LocalDateTime transactionTime;
 
-  @Column(nullable = false)
+  @Column(nullable = false, unique = true)
   private String uuid;
+
+  @NullMarked
+  @Builder
+  public Transaction(long userId, long amount, TransactionType type, long beforePoint,
+      long afterPoint, String uuid) {
+    this.userId = userId;
+    this.amount = amount;
+    this.type = type;
+    this.beforePoint = beforePoint;
+    this.afterPoint = afterPoint;
+    this.uuid = uuid;
+  }
 }

@@ -98,6 +98,15 @@ public class GlobalExceptionHandler {
     return buildResponseEntity(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Media type not supported", ex);
   }
 
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<CommonResponse<?>> handleBusinessException(BusinessException ex) {
+    return buildResponseEntity(
+        ex.getErrorCode().getStatus(),
+        ex.getErrorCode().getMessage(),
+        ex
+    );
+  }
+
   // Catch-all
   @ExceptionHandler(Exception.class)
   public ResponseEntity<CommonResponse<?>> handleAll(Exception ex) {
