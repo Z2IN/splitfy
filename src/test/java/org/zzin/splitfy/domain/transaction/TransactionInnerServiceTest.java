@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.then;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,7 +64,7 @@ class TransactionInnerServiceTest {
         .afterPoint(1200L)
         .build();
 
-    given(transactionRepository.save(org.mockito.ArgumentMatchers.any(Transaction.class)))
+    given(transactionRepository.save(ArgumentMatchers.any(Transaction.class)))
         .willThrow(new RuntimeException("db error"));
 
     assertThatThrownBy(() -> service.createDepositTransaction(param))
