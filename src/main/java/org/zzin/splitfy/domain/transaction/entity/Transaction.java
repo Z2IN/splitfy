@@ -14,7 +14,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import org.jspecify.annotations.NullMarked;
 import org.springframework.data.annotation.CreatedDate;
 import org.zzin.splitfy.domain.transaction.enums.TransactionType;
 
@@ -51,7 +50,6 @@ public class Transaction {
   @Column(nullable = false, unique = true)
   private String uuid;
 
-  @NullMarked
   @Builder
   public Transaction(long userId, long amount, TransactionType type, long beforePoint,
       long afterPoint, String uuid) {
