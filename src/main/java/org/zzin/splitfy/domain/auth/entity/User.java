@@ -26,8 +26,8 @@ public class User {
   @Column(nullable = false)
   private String password;
 
-  @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
-  private Long point;
+  @Column(nullable = false)
+  private Long point = 0L;
 
   @Column(nullable = false, unique = true)
   private String username;
