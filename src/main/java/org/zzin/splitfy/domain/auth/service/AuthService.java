@@ -17,39 +17,39 @@ import org.zzin.splitfy.domain.auth.repository.AuthRepository;
 @NullMarked
 public class AuthService {
 
-    private final AuthRepository authRepository;
-    private final PasswordEncoder passwordEncoder;
+  private final AuthRepository authRepository;
+  private final PasswordEncoder passwordEncoder;
 
-    @Transactional
-    public SignupResponse signup(final SignupRequest request) {
+  @Transactional
+  public SignupResponse signup(final SignupRequest request) {
 
-        if (authRepository.existsByEmail(request.email())) {
-            throw new BusinessException(AuthErrorCode.DUPLICATE_EMAIL);
-        }
-
-        if (authRepository.existsByUsername(request.username())) {
-            throw new BusinessException(AuthErrorCode.DUPLICATE_USERNAME);
-        }
-
-        String encodedPassword = passwordEncoder.encode(request.password());
-
-        if (encodedPassword == null) {
-            throw new BusinessException(AuthErrorCode.PASSWORD_ENCODING_FAILED);
-        }
-
-        User user = User.ofSignup(
-                request.email(),
-                request.username(),
-                encodedPassword
-        );
-
-        User savedUser = authRepository.save(user);
-
-        return new SignupResponse(
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getUsername(),
-                savedUser.getPoint()
-        );
+    if (authRepository.existsByEmail(request.email())) {
+      throw new BusinessException(AuthErrorCode.DUPLICATE_EMAIL);
     }
+
+    if (authRepository.existsByUsername(request.username())) {
+      throw new BusinessException(AuthErrorCode.DUPLICATE_USERNAME);
+    }
+
+    String encodedPassword = passwordEncoder.encode(request.password());
+
+    if (encodedPassword == null) {
+      throw new BusinessException(AuthErrorCode.PASSWORD_ENCODING_FAILED);
+    }
+
+    User user = User.ofSignup(
+        request.email(),
+        request.username(),
+        encodedPassword
+    );
+
+    User savedUser = authRepository.save(user);
+
+    return new SignupResponse(
+        savedUser.getId(),
+        savedUser.getEmail(),
+        savedUser.getUsername(),
+        savedUser.getPoint()
+    );
+  }
 }

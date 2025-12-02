@@ -18,12 +18,12 @@ import org.zzin.splitfy.domain.auth.service.AuthService;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final AuthService authService;
+  private final AuthService authService;
 
-    @PostMapping
-    public ResponseEntity<CommonResponse<Object>> signup(@Valid @RequestBody SignupRequest request) {
-        SignupResponse response = authService.signup(request);
+  @PostMapping
+  public ResponseEntity<CommonResponse<Object>> signup(@Valid @RequestBody SignupRequest request) {
+    SignupResponse response = authService.signup(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response));
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response));
+  }
 }

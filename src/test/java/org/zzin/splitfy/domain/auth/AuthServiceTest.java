@@ -1,5 +1,13 @@
 package org.zzin.splitfy.domain.auth;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -14,76 +22,69 @@ import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
 import org.zzin.splitfy.domain.auth.service.AuthService;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-
 public class AuthServiceTest {
-    @Mock
-    private AuthRepository authRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+  @Mock
+  private AuthRepository authRepository;
 
-    @InjectMocks
-    private AuthService authService;
-    private User mockUser;
-    private AuthErrorCode UserErrorCode;
+  @Mock
+  private PasswordEncoder passwordEncoder;
 
-    @BeforeEach
-    void Setup() {
-        MockitoAnnotations.openMocks(this);
-    }
+  @InjectMocks
+  private AuthService authService;
+  private User mockUser;
+  private AuthErrorCode UserErrorCode;
 
-    private SignupRequest createRequest() {
-        return new SignupRequest("test@example.com", "password", "username");
-    }
+  @BeforeEach
+  void Setup() {
+    MockitoAnnotations.openMocks(this);
+  }
 
-    @Test
-    void signup_유효한_정보로_회원가입에_성공() {
-        SignupRequest request = createRequest();
+  private SignupRequest createRequest() {
+    return new SignupRequest("test@example.com", "password", "username");
+  }
 
-        given(authRepository.existsByEmail(request.email())).willReturn(false);
-        given(authRepository.existsByUsername(request.username())).willReturn(false);
-        given(passwordEncoder.encode(request.password())).willReturn("encodedPw");
+  @Test
+  void signup_유효한_정보로_회원가입에_성공() {
+    SignupRequest request = createRequest();
 
-        User savedUser = User.ofSignup("test@example.com", "testUser", "encodedPs");
-        given(authRepository.save(any(User.class))).willReturn(savedUser);
+    given(authRepository.existsByEmail(request.email())).willReturn(false);
+    given(authRepository.existsByUsername(request.username())).willReturn(false);
+    given(passwordEncoder.encode(request.password())).willReturn("encodedPw");
 
-        SignupResponse response = authService.signup(request);
+    User savedUser = User.ofSignup("test@example.com", "testUser", "encodedPs");
+    given(authRepository.save(any(User.class))).willReturn(savedUser);
 
-        then(authRepository).should(times(1)).save(any(User.class));
-        assertThat(response.email()).isEqualTo("test@example.com");
-        assertThat(response.username()).isEqualTo("testUser");
-        assertThat(response.point()).isEqualTo(0L);
-    }
+    SignupResponse response = authService.signup(request);
 
-    @Test
-    void signup_이메일중복_예외발생() {
-        SignupRequest request = createRequest();
-        given(authRepository.existsByEmail(request.email())).willReturn(true);
+    then(authRepository).should(times(1)).save(any(User.class));
+    assertThat(response.email()).isEqualTo("test@example.com");
+    assertThat(response.username()).isEqualTo("testUser");
+    assertThat(response.point()).isEqualTo(0L);
+  }
 
-        assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage(UserErrorCode.DUPLICATE_EMAIL.getMessage());
+  @Test
+  void signup_이메일중복_예외발생() {
+    SignupRequest request = createRequest();
+    given(authRepository.existsByEmail(request.email())).willReturn(true);
 
-        then(authRepository).should(never()).save(any(User.class));
-    }
+    assertThatThrownBy(() -> authService.signup(request))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(UserErrorCode.DUPLICATE_EMAIL.getMessage());
 
-    @Test
-    void signup_닉네임중복_예외발생() {
-        SignupRequest request = createRequest();
-        given(authRepository.existsByEmail(request.email())).willReturn(false);
-        given(authRepository.existsByUsername(request.username())).willReturn(true);
+    then(authRepository).should(never()).save(any(User.class));
+  }
 
-        assertThatThrownBy(() -> authService.signup(request))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage(AuthErrorCode.DUPLICATE_USERNAME.getMessage());
+  @Test
+  void signup_닉네임중복_예외발생() {
+    SignupRequest request = createRequest();
+    given(authRepository.existsByEmail(request.email())).willReturn(false);
+    given(authRepository.existsByUsername(request.username())).willReturn(true);
 
-        then(authRepository).should(never()).save(any(User.class));
-    }
+    assertThatThrownBy(() -> authService.signup(request))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(AuthErrorCode.DUPLICATE_USERNAME.getMessage());
+
+    then(authRepository).should(never()).save(any(User.class));
+  }
 }
