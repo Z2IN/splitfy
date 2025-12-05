@@ -21,7 +21,8 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping
-  public ResponseEntity<CommonResponse<Object>> signup(@Valid @RequestBody SignupRequest request) {
+  public ResponseEntity<CommonResponse<SignupResponse>> signup(
+      @Valid @RequestBody SignupRequest request) {
     SignupResponse response = authService.signup(request);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response));

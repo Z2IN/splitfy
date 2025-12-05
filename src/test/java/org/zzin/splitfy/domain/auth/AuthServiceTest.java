@@ -8,11 +8,11 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.auth.dto.request.SignupRequest;
@@ -22,6 +22,7 @@ import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
 import org.zzin.splitfy.domain.auth.service.AuthService;
 
+@ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
 
   @Mock
@@ -34,11 +35,6 @@ public class AuthServiceTest {
   private AuthService authService;
   private User mockUser;
   private AuthErrorCode UserErrorCode;
-
-  @BeforeEach
-  void Setup() {
-    MockitoAnnotations.openMocks(this);
-  }
 
   private SignupRequest createRequest() {
     return new SignupRequest("test@example.com", "password", "username");
