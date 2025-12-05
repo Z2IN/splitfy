@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.auth.dto.request.SignupRequest;
 import org.zzin.splitfy.domain.auth.dto.response.SignupResponse;
@@ -33,7 +34,6 @@ public class AuthServiceTest {
 
   @InjectMocks
   private AuthService authService;
-  private User mockUser;
   private AuthErrorCode UserErrorCode;
 
   private SignupRequest createRequest() {
@@ -48,14 +48,15 @@ public class AuthServiceTest {
     given(authRepository.existsByUsername(request.username())).willReturn(false);
     given(passwordEncoder.encode(request.password())).willReturn("encodedPw");
 
-    User savedUser = User.ofSignup("test@example.com", "testUser", "encodedPs");
+    User savedUser = User.ofSignup(request.email(), request.username(), "encodedPw");
+    ReflectionTestUtils.setField(savedUser, "id", 1L);
     given(authRepository.save(any(User.class))).willReturn(savedUser);
 
     SignupResponse response = authService.signup(request);
 
     then(authRepository).should(times(1)).save(any(User.class));
-    assertThat(response.email()).isEqualTo("test@example.com");
-    assertThat(response.username()).isEqualTo("testUser");
+    assertThat(response.email()).isEqualTo(request.email());
+    assertThat(response.username()).isEqualTo(request.username());
     assertThat(response.point()).isEqualTo(0L);
   }
 
@@ -79,7 +80,7 @@ public class AuthServiceTest {
 
     assertThatThrownBy(() -> authService.signup(request))
         .isInstanceOf(BusinessException.class)
-        .hasMessage(AuthErrorCode.DUPLICATE_USERNAME.getMessage());
+        .hasMessage(UserErrorCode.DUPLICATE_USERNAME.getMessage());
 
     then(authRepository).should(never()).save(any(User.class));
   }
