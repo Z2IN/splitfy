@@ -25,6 +25,6 @@ public class AuthController {
       @Valid @RequestBody SignupRequest request) {
     SignupResponse response = authService.signup(request);
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(CommonResponse.success(response));
+    return CommonResponse.success(response);
   }
 }
