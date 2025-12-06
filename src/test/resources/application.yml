@@ -1,17 +1,22 @@
 spring:
-    application:
-        name: splitfy-test
-    datasource:
-        url: jdbc:postgresql://localhost:5433/splitfy
-        username: user
-        password: password
-        driver-class-name: org.postgresql.Driver
-        hikari:
-            maximum-pool-size: 10
-    jpa:
-        hibernate:
-            ddl-auto: update
-        properties:
-            hibernate:
-                dialect: org.hibernate.dialect.PostgreSQLDialect
-        show-sql: true
+  application:
+    name: splitfy-test
+  datasource:
+    url: jdbc:postgresql://localhost:5433/splitfy
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+jwt:
+  issuer: splitfy-dev
+  access-token-expiration: 30m
+  secret: bm//miw3QerQuSJje/+pPl/LJmpIlICr0FZmVH2C2kY=

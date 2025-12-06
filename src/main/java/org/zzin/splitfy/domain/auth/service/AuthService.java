@@ -6,7 +6,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
+import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.common.security.jwt.JwtUtil;
+import org.zzin.splitfy.domain.auth.dto.request.LoginRequest;
 import org.zzin.splitfy.domain.auth.dto.request.SignupRequest;
+import org.zzin.splitfy.domain.auth.dto.response.LoginResponse;
 import org.zzin.splitfy.domain.auth.dto.response.SignupResponse;
 import org.zzin.splitfy.domain.auth.entity.User;
 import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
@@ -19,6 +23,7 @@ public class AuthService {
 
   private final AuthRepository authRepository;
   private final PasswordEncoder passwordEncoder;
+  private final JwtUtil jwtUtil;
 
   @Transactional
   public SignupResponse signup(final SignupRequest request) {
@@ -51,5 +56,21 @@ public class AuthService {
         savedUser.getUsername(),
         savedUser.getPoint()
     );
+  }
+
+  @Transactional(readOnly = true)
+  public LoginResponse login(final LoginRequest request) {
+    User user = authRepository.findByEmail(request.email())
+        .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_CREDENTIALS));
+
+    if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+      throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
+    }
+
+    AuthUser authUser = new AuthUser(user.getId());
+
+    String accessToken = jwtUtil.createAccessToken(authUser);
+
+    return new LoginResponse(accessToken);
   }
 }
