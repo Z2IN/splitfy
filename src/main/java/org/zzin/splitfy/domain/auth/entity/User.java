@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -32,4 +33,15 @@ public class User {
   @Column(nullable = false, unique = true)
   private String username;
 
+  @NullMarked
+  public static User ofSignup(String email,
+      String username,
+      String encodedPassword) {
+    User user = new User();
+    user.email = email;
+    user.username = username;
+    user.password = encodedPassword;
+    user.point = 0L;
+    return user;
+  }
 }

@@ -1,5 +1,7 @@
 package org.zzin.splitfy.common.exception;
 
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -14,10 +16,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import org.zzin.splitfy.common.dto.CommonResponse;
-
-import jakarta.validation.ConstraintViolationException;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -96,6 +94,15 @@ public class GlobalExceptionHandler {
   public ResponseEntity<CommonResponse<?>> handleMediaTypeNotSupported(
       HttpMediaTypeNotSupportedException ex) {
     return buildResponseEntity(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Media type not supported", ex);
+  }
+
+  @ExceptionHandler(BusinessException.class)
+  public ResponseEntity<CommonResponse<?>> handleBusinessException(BusinessException ex) {
+    return buildResponseEntity(
+        ex.getErrorCode().getStatus(),
+        ex.getErrorCode().getMessage(),
+        ex
+    );
   }
 
   // Catch-all
