@@ -30,7 +30,11 @@ public class JwtUtil {
 
     this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
 
-    this.parser = Jwts.parser().clockSkewSeconds(60).verifyWith(key).build();
+    this.parser = Jwts.parser()
+        .clockSkewSeconds(60)
+        .verifyWith(key)
+        .requireIssuer(jwtProperties.issuer())
+        .build();
   }
 
   public String createAccessToken(AuthUser user) {
