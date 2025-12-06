@@ -19,5 +19,5 @@ spring:
 jwt:
   issuer: splitfy-dev
   access-token-expiration: 30m
-  secret: ${JWT_SECRET}
+  secret: bm//miw3QerQuSJje/+pPl/LJmpIlICr0FZmVH2C2kY=
 
