@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @AllArgsConstructor
 @Getter
-public class UserPointChangeDetailDTO {
+public class PointChangeResultDTO {
 
   private final long beforePoint;
   private final long afterPoint;
