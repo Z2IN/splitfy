@@ -18,9 +18,7 @@ spring:
 
 logging:
   level:
-    org:
-      zzin:
-        splitfy: DEBUG
+    org.zzin.splitfy: DEBUG
 
 jwt:
   issuer: splitfy-dev
