@@ -28,23 +28,23 @@ public class AuthService {
   @Transactional
   public SignupResponse signup(final SignupRequest request) {
 
-    if (authRepository.existsByEmail(request.getEmail())) {
+    if (authRepository.existsByEmail(request.email())) {
       throw new BusinessException(AuthErrorCode.DUPLICATE_EMAIL);
     }
 
-    if (authRepository.existsByUsername(request.getUsername())) {
+    if (authRepository.existsByUsername(request.username())) {
       throw new BusinessException(AuthErrorCode.DUPLICATE_USERNAME);
     }
 
-    String encodedPassword = passwordEncoder.encode(request.getPassword());
+    String encodedPassword = passwordEncoder.encode(request.password());
 
     if (encodedPassword == null) {
       throw new BusinessException(AuthErrorCode.PASSWORD_ENCODING_FAILED);
     }
 
     User user = User.ofSignup(
-        request.getEmail(),
-        request.getUsername(),
+        request.email(),
+        request.username(),
         encodedPassword
     );
 
@@ -60,10 +60,10 @@ public class AuthService {
 
   @Transactional(readOnly = true)
   public LoginResponse login(final LoginRequest request) {
-    User user = authRepository.findByEmail(request.getEmail())
+    User user = authRepository.findByEmail(request.email())
         .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_CREDENTIALS));
 
-    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+    if (!passwordEncoder.matches(request.password(), user.getPassword())) {
       throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
     }
 

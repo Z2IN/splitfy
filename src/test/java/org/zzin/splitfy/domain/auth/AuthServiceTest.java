@@ -34,44 +34,39 @@ public class AuthServiceTest {
 
   @InjectMocks
   private AuthService authService;
-  private AuthErrorCode UserErrorCode;
 
   private SignupRequest createRequest() {
-    SignupRequest req = new SignupRequest();
-    ReflectionTestUtils.setField(req, "email", "test@example.com");
-    ReflectionTestUtils.setField(req, "password", "password");
-    ReflectionTestUtils.setField(req, "username", "username");
-    return req;
+    return new SignupRequest("test@example.com", "password", "username");
   }
 
   @Test
   void signup_유효한_정보로_회원가입에_성공() {
     SignupRequest request = createRequest();
 
-    given(authRepository.existsByEmail(request.getEmail())).willReturn(false);
-    given(authRepository.existsByUsername(request.getUsername())).willReturn(false);
-    given(passwordEncoder.encode(request.getPassword())).willReturn("encodedPw");
+    given(authRepository.existsByEmail(request.email())).willReturn(false);
+    given(authRepository.existsByUsername(request.username())).willReturn(false);
+    given(passwordEncoder.encode(request.password())).willReturn("encodedPw");
 
-    User savedUser = User.ofSignup(request.getEmail(), request.getUsername(), "encodedPw");
+    User savedUser = User.ofSignup(request.email(), request.username(), "encodedPw");
     ReflectionTestUtils.setField(savedUser, "id", 1L);
     given(authRepository.save(any(User.class))).willReturn(savedUser);
 
     SignupResponse response = authService.signup(request);
 
     then(authRepository).should(times(1)).save(any(User.class));
-    assertThat(response.email()).isEqualTo(request.getEmail());
-    assertThat(response.username()).isEqualTo(request.getUsername());
+    assertThat(response.email()).isEqualTo(request.email());
+    assertThat(response.username()).isEqualTo(request.username());
     assertThat(response.point()).isEqualTo(0L);
   }
 
   @Test
   void signup_이메일중복_예외발생() {
     SignupRequest request = createRequest();
-    given(authRepository.existsByEmail(request.getEmail())).willReturn(true);
+    given(authRepository.existsByEmail(request.email())).willReturn(true);
 
     assertThatThrownBy(() -> authService.signup(request))
         .isInstanceOf(BusinessException.class)
-        .hasMessage(UserErrorCode.DUPLICATE_EMAIL.getMessage());
+        .hasMessage(AuthErrorCode.DUPLICATE_EMAIL.getMessage());
 
     then(authRepository).should(never()).save(any(User.class));
   }
@@ -79,12 +74,12 @@ public class AuthServiceTest {
   @Test
   void signup_닉네임중복_예외발생() {
     SignupRequest request = createRequest();
-    given(authRepository.existsByEmail(request.getEmail())).willReturn(false);
-    given(authRepository.existsByUsername(request.getUsername())).willReturn(true);
+    given(authRepository.existsByEmail(request.email())).willReturn(false);
+    given(authRepository.existsByUsername(request.username())).willReturn(true);
 
     assertThatThrownBy(() -> authService.signup(request))
         .isInstanceOf(BusinessException.class)
-        .hasMessage(UserErrorCode.DUPLICATE_USERNAME.getMessage());
+        .hasMessage(AuthErrorCode.DUPLICATE_USERNAME.getMessage());
 
     then(authRepository).should(never()).save(any(User.class));
   }

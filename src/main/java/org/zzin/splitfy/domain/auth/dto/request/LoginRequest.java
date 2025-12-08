@@ -7,4 +7,9 @@ public record LoginRequest(
 
     @Email @NotBlank String email, @NotBlank String password) {
 
+  @Override
+  public String toString() {
+    return "LoginRequest[email=%s, password=****]".formatted(email);
+  }
+
 }
