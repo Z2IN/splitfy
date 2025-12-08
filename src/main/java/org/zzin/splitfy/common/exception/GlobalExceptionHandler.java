@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
   // 응답 생성 및 로깅
   private ResponseEntity<CommonResponse<?>> buildResponseEntity(HttpStatus status, String message,
       Exception ex) {
-    log.error("Exception handled [{}]: {}", status, ex.getMessage(), ex);
+    log.warn("Exception handled [{}]: {}", status, ex.getMessage(), ex);
     return ResponseEntity.status(status).body(CommonResponse.failure(message));
   }
 

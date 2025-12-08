@@ -16,6 +16,10 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     show-sql: true
 
+logging:
+  level:
+    org.zzin.splitfy: DEBUG
+
 jwt:
   issuer: splitfy-dev
   access-token-expiration: 30m
