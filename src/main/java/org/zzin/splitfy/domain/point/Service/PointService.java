@@ -3,6 +3,7 @@ package org.zzin.splitfy.domain.point.Service;
 import java.util.UUID;
 
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
@@ -78,7 +79,11 @@ public class PointService {
   @Transactional
   public TransferResponse transferTo(long toUserId, long amount, long meId) {
     String transactionUUID = UUID.randomUUID().toString();
-    UserPoint myPoint = pointQRepository.getUserPointBy(meId);
+    @Nullable UserPoint myPoint = pointQRepository.findUserPointBy(meId);
+
+    if (myPoint == null) {
+      throw new BusinessException(PointErrorCode.USER_NOT_FOUND);
+    }
 
     if (!pointQRepository.isUserExistBy(toUserId)) {
       throw new BusinessException(PointErrorCode.USER_NOT_FOUND);

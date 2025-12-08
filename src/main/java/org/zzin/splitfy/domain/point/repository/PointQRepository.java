@@ -1,9 +1,9 @@
 package org.zzin.splitfy.domain.point.repository;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
-import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.auth.entity.QUser;
-import org.zzin.splitfy.domain.point.exception.PointErrorCode;
 import org.zzin.splitfy.domain.point.model.UserPoint;
 
 import com.querydsl.core.types.Projections;
@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
+@NullMarked
 public class PointQRepository {
 
   private final JPAQueryFactory jpaQueryFactory;
@@ -29,7 +30,7 @@ public class PointQRepository {
     return fetchOne != null;
   }
 
-  public UserPoint getUserPointBy(long userId) {
+  public @Nullable UserPoint findUserPointBy(long userId) {
     QUser user = QUser.user;
 
     UserPoint point = jpaQueryFactory
@@ -39,10 +40,6 @@ public class PointQRepository {
         .from(user)
         .where(user.id.eq(userId))
         .fetchOne();
-
-    if (point == null) {
-      throw new BusinessException(PointErrorCode.USER_NOT_FOUND);
-    }
 
     return point;
   }

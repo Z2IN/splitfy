@@ -88,7 +88,7 @@ class PointServiceTest {
     long otherBefore = 0L;
     long otherAfter = 50L;
 
-    given(pointQRepository.getUserPointBy(meId)).willReturn(
+    given(pointQRepository.findUserPointBy(meId)).willReturn(
         new UserPoint(myBefore));
     given(pointQRepository.isUserExistBy(toUserId)).willReturn(true);
 
@@ -104,7 +104,7 @@ class PointServiceTest {
     assertThat(response.beforePoint()).isEqualTo(myBefore);
     assertThat(response.afterPoint()).isEqualTo(myAfter);
 
-    then(pointQRepository).should().getUserPointBy(meId);
+    then(pointQRepository).should().findUserPointBy(meId);
     then(pointQRepository).should().isUserExistBy(toUserId);
     then(authInnerService).should().addPoint(meId, amount * -1);
     then(authInnerService).should().addPoint(toUserId, amount);
@@ -137,7 +137,7 @@ class PointServiceTest {
     long toUserId = 2L;
     long amount = 50L;
 
-    given(pointQRepository.getUserPointBy(meId)).willReturn(
+    given(pointQRepository.findUserPointBy(meId)).willReturn(
         new UserPoint(100L));
     given(pointQRepository.isUserExistBy(toUserId)).willReturn(false);
 
@@ -157,7 +157,7 @@ class PointServiceTest {
     long toUserId = 2L;
     long amount = 100L;
 
-    given(pointQRepository.getUserPointBy(meId)).willReturn(
+    given(pointQRepository.findUserPointBy(meId)).willReturn(
         new UserPoint(50L));
     given(pointQRepository.isUserExistBy(toUserId)).willReturn(true);
 
