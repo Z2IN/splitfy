@@ -1,0 +1,45 @@
+package org.zzin.splitfy.domain.event.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Entity
+@Table(name = "waiting_queues")
+public class WaitingQueue {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  @Column(nullable = false)
+  private Long eventId;
+
+  @Column(nullable = false)
+  private Long userId;
+
+  @CreatedDate
+  @Column(nullable = false, updatable = false)
+  private LocalDateTime joinAt; //대기열에 참가한 시간
+
+  private LocalDateTime expireAt; //입장 순서 후 만료 시간(입장 후 30초)
+
+  @Builder
+  public WaitingQueue(Long eventId, Long userId, LocalDateTime expireAt) {
+    this.eventId = eventId;
+    this.userId = userId;
+    this.expireAt = expireAt;
+  }
+
+}
