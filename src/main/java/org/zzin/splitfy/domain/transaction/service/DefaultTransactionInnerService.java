@@ -34,7 +34,7 @@ public class DefaultTransactionInnerService implements TransactionInnerService {
     try {
       transactionRepository.save(transaction);
     } catch (Exception e) {
-      log.error("Failed to create deposit transaction: {}", e.getMessage(), e);
+      log.warn("Failed to create deposit transaction: {}", e.getMessage(), e);
       throw new BusinessException(TransactionErrorCode.TRANSACTION_CREATION_FAILED);
     }
   }
