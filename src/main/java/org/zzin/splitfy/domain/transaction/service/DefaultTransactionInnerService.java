@@ -4,7 +4,7 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
-import org.zzin.splitfy.domain.transaction.dto.CreateDepositTransactionParamDTO;
+import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.entity.Transaction;
 import org.zzin.splitfy.domain.transaction.enums.TransactionType;
 import org.zzin.splitfy.domain.transaction.exception.TransactionErrorCode;
@@ -21,13 +21,11 @@ public class DefaultTransactionInnerService implements TransactionInnerService {
 
   private final TransactionRepository transactionRepository;
 
-  @Override
-  @Transactional
-  public void createDepositTransaction(CreateDepositTransactionParamDTO param) {
+  private void createTransaction(TransactionInfoDTO param, TransactionType type) {
     Transaction transaction = Transaction.builder()
         .uuid(param.getTransactionUUID())
         .userId(param.getUserId())
-        .type(TransactionType.DEPOSIT)
+        .type(type)
         .amount(param.getAmount())
         .beforePoint(param.getBeforePoint())
         .afterPoint(param.getAfterPoint())
@@ -39,5 +37,23 @@ public class DefaultTransactionInnerService implements TransactionInnerService {
       log.error("Failed to create deposit transaction: {}", e.getMessage(), e);
       throw new BusinessException(TransactionErrorCode.TRANSACTION_CREATION_FAILED);
     }
+  }
+
+  @Override
+  @Transactional
+  public void createDepositTransaction(TransactionInfoDTO param) {
+    createTransaction(param, TransactionType.DEPOSIT);
+  }
+
+  @Override
+  @Transactional
+  public void createTransferInTransaction(TransactionInfoDTO param) {
+    createTransaction(param, TransactionType.TRANSFER_IN);
+  }
+
+  @Override
+  @Transactional
+  public void createTransferOutTransaction(TransactionInfoDTO param) {
+    createTransaction(param, TransactionType.TRANSFER_OUT);
   }
 }

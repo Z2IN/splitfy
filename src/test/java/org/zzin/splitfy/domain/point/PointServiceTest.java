@@ -16,7 +16,7 @@ import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.mapper.PointMapper;
-import org.zzin.splitfy.domain.transaction.dto.CreateDepositTransactionParamDTO;
+import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,11 +53,11 @@ class PointServiceTest {
 
     then(authInnerService).should().addPoint(userId, amount);
 
-    ArgumentCaptor<CreateDepositTransactionParamDTO> captor = ArgumentCaptor.forClass(
-        CreateDepositTransactionParamDTO.class);
+    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(
+        TransactionInfoDTO.class);
     then(transactionInnerService).should().createDepositTransaction(captor.capture());
 
-    CreateDepositTransactionParamDTO dto = captor.getValue();
+    TransactionInfoDTO dto = captor.getValue();
     assertThat(dto).isNotNull();
     assertThat(dto.getUserId()).isEqualTo(userId);
     assertThat(dto.getAmount()).isEqualTo(amount);

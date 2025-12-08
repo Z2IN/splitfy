@@ -13,7 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
-import org.zzin.splitfy.domain.transaction.dto.CreateDepositTransactionParamDTO;
+import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.entity.Transaction;
 import org.zzin.splitfy.domain.transaction.enums.TransactionType;
 import org.zzin.splitfy.domain.transaction.exception.TransactionErrorCode;
@@ -31,7 +31,7 @@ class TransactionInnerServiceTest {
 
   @Test
   void createDepositTransaction_저장_성공() {
-    CreateDepositTransactionParamDTO param = CreateDepositTransactionParamDTO.builder()
+    TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID("uuid-123")
         .userId(1L)
         .amount(100L)
@@ -56,7 +56,7 @@ class TransactionInnerServiceTest {
 
   @Test
   void createDepositTransaction_db_저장_실패시_BusinessException_발생() {
-    CreateDepositTransactionParamDTO param = CreateDepositTransactionParamDTO.builder()
+    TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID("uuid-456")
         .userId(2L)
         .amount(200L)
