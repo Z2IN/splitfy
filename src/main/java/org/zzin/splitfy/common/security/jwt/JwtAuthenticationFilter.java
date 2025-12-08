@@ -14,10 +14,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.entity.User;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
+import tools.jackson.databind.json.JsonMapper;
 
 @Slf4j
 @Component
@@ -26,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtUtil jwtUtil;
   private final AuthRepository authRepository;
+  private final JsonMapper jsonMapper;
 
   @Override
   protected void doFilterInternal(
@@ -80,11 +83,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private void unauthorized(HttpServletResponse res, String message) throws IOException {
     res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     res.setContentType(MediaType.APPLICATION_JSON_VALUE);
-    res.getWriter().write("""
-        {
-          "error": "UNAUTHORIZED",
-          "message": "%s"
-        }
-        """.formatted(message));
+    res.setCharacterEncoding("UTF-8");
+
+    CommonResponse<Void> response = CommonResponse.failure(message);
+    res.getWriter().write(jsonMapper.writeValueAsString(response));
   }
 }
