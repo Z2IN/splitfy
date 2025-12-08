@@ -30,5 +30,5 @@ public class EventNumber {
   private long reward;
 
   @Column(nullable = false)
-  private boolean isSelected;
+  private boolean selected;
 }
