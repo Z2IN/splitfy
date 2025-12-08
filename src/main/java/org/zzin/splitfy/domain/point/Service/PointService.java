@@ -60,9 +60,6 @@ public class PointService {
   /**
    * 송신자(meId)로부터 수신자(toUserId)에게 amount만큼 포인트를 이체하고, 이체 관련 트랜잭션을 기록합니다.
    *
-   * 메서드는 @Transactional로 실행되어 모든 단계가 하나의 트랜잭션 경계 안에서 수행됩니다.
-   * 내부 서비스 호출 중 예외가 발생하면 전체 작업은 롤백됩니다.
-   *
    * @param toUserId 수신자의 사용자 ID
    * @param amount   이체할 포인트 양 (양수여야 함)
    * @param meId     송신자의 사용자 ID
