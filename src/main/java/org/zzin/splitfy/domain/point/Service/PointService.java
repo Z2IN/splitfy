@@ -67,13 +67,13 @@ public class PointService {
    * 지정된 사용자(toUserId)에게 현재 사용자인(meId)의 포인트를 전송합니다.
    *
    * @param toUserId 포인트를 받을 사용자의 ID
-   * @param amount 전송할 포인트 금액(양수)
-   * @param meId 포인트를 보내는(현재 인증된) 사용자의 ID
+   * @param amount   전송할 포인트 금액(양수)
+   * @param meId     포인트를 보내는(현재 인증된) 사용자의 ID
    * @return TransferResponse 전송된 금액과 송신자(meId)의 포인트 변경(이전/이후) 정보를 포함한 응답
    * @throws BusinessException
-   * - 수신자(toUserId)가 존재하지 않거나(또는 송신자(meId)를 조회할 수 없을 경우) 발생합니다.
+   *                           - 수신자(toUserId)가 존재하지 않거나(또는 송신자(meId)를 조회할 수 없을 경우) 발생합니다.
    * @throws BusinessException
-   * - 송신자의 잔액이 전송할 금액보다 부족할 경우 발생합니다.
+   *                           - 송신자의 잔액이 전송할 금액보다 부족할 경우 발생합니다.
    * @implNote 트랜잭션 추적을 위해 UUID를 생성하여 트랜잭션 기록 생성 시 사용합니다.
    */
   @Transactional
@@ -82,11 +82,11 @@ public class PointService {
     @Nullable UserPoint myPoint = pointQRepository.findUserPointBy(meId);
 
     if (myPoint == null) {
-      throw new BusinessException(PointErrorCode.USER_NOT_FOUND);
+      throw new BusinessException(PointErrorCode.SENDER_NOT_FOUND);
     }
 
     if (!pointQRepository.isUserExistBy(toUserId)) {
-      throw new BusinessException(PointErrorCode.USER_NOT_FOUND);
+      throw new BusinessException(PointErrorCode.RECEIVER_NOT_FOUND);
     }
 
     if (!myPoint.hasEnoughPoint(amount)) {

@@ -143,7 +143,7 @@ class PointServiceTest {
 
     BusinessException thrown = assertThrows(
         BusinessException.class, () -> pointService.transferTo(toUserId, amount, meId));
-    assertThat(thrown.getErrorCode()).isEqualTo(PointErrorCode.USER_NOT_FOUND);
+    assertThat(thrown.getErrorCode()).isEqualTo(PointErrorCode.RECEIVER_NOT_FOUND);
     then(authInnerService).should(never()).addPoint(anyLong(), anyLong());
     then(transactionInnerService).should(never()).createTransferOutTransaction(any(
         TransactionInfoDTO.class));
