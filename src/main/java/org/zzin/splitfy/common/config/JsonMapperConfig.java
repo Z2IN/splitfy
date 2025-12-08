@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.SerializationFeature;
 
 @Configuration
-public class ObjectMapperConfig {
+public class JsonMapperConfig {
 
   @Bean
   public JsonMapperBuilderCustomizer customizer() {
