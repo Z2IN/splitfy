@@ -36,7 +36,7 @@ public class Event {
   private EventStatus status;
 
   @Column(nullable = false)
-  private Long totalStock;
+  private long totalStock;
 
   @Column(nullable = false)
   private LocalDateTime startAt;
