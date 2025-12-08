@@ -54,7 +54,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.warn("사용자 없음: userId={}", userId);
         SecurityContextHolder.clearContext();
         unauthorized(res, "존재하지 않는 사용자입니다. 다시 로그인해주세요.");
-
         return;
       }
       AuthUser authUser = new AuthUser(userId);
