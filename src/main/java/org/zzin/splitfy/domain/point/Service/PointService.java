@@ -93,7 +93,7 @@ public class PointService {
       throw new BusinessException(PointErrorCode.NOT_ENOUGH_POINT);
     }
 
-    UserPointChangeDetailDTO myPointChangeDetail = authInnerService.addPoint(meId, amount * -1);
+    UserPointChangeDetailDTO myPointChangeDetail = authInnerService.addPoint(meId, -amount);
     UserPointChangeDetailDTO otherPointChangeDetail = authInnerService.addPoint(toUserId, amount);
     var transferOutInfo = pointMapper.toTransactionInfoDTO(
         transactionUUID,
