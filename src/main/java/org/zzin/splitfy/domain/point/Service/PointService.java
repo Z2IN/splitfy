@@ -3,18 +3,13 @@ package org.zzin.splitfy.domain.point.Service;
 import java.util.UUID;
 
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.zzin.splitfy.common.exception.BusinessException;
-import org.zzin.splitfy.domain.auth.dto.UserPointChangeDetailDTO;
+import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
+import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
-import org.zzin.splitfy.domain.point.exception.PointErrorCode;
-import org.zzin.splitfy.domain.point.mapper.PointMapper;
-import org.zzin.splitfy.domain.point.model.UserPoint;
-import org.zzin.splitfy.domain.point.repository.PointQRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
@@ -27,8 +22,6 @@ public class PointService {
 
   private final AuthInnerService authInnerService;
   private final TransactionInnerService transactionInnerService;
-  private final PointMapper pointMapper;
-  private final PointQRepository pointQRepository;
 
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
@@ -51,70 +44,61 @@ public class PointService {
   @Transactional
   public DepositResponse deposit(long userId, long amount) {
     String transactionUUID = UUID.randomUUID().toString();
-    UserPointChangeDetailDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
-    TransactionInfoDTO param = pointMapper.toTransactionInfoDTO(
-        transactionUUID,
-        userId,
-        amount,
-        pointChangeDetail
-    );
+    PointChangeResultDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
+    TransactionInfoDTO param = TransactionInfoDTO.builder()
+        .transactionUUID(transactionUUID)
+        .userId(userId)
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getBeforePoint())
+        .afterPoint(pointChangeDetail.getAfterPoint())
+        .build();
     transactionInnerService.createDepositTransaction(param);
 
     return new DepositResponse(amount, pointChangeDetail.getAfterPoint());
   }
 
   /**
-   * 지정된 사용자(toUserId)에게 현재 사용자인(meId)의 포인트를 전송합니다.
+   * 송신자(meId)로부터 수신자(toUserId)에게 amount만큼 포인트를 이체하고, 이체 관련 트랜잭션을 기록합니다.
    *
-   * @param toUserId 포인트를 받을 사용자의 ID
-   * @param amount   전송할 포인트 금액(양수)
-   * @param meId     포인트를 보내는(현재 인증된) 사용자의 ID
-   * @return TransferResponse 전송된 금액과 송신자(meId)의 포인트 변경(이전/이후) 정보를 포함한 응답
-   * @throws BusinessException
-   *                           - 수신자(toUserId)가 존재하지 않거나(또는 송신자(meId)를 조회할 수 없을 경우) 발생합니다.
-   * @throws BusinessException
-   *                           - 송신자의 잔액이 전송할 금액보다 부족할 경우 발생합니다.
-   * @implNote 트랜잭션 추적을 위해 UUID를 생성하여 트랜잭션 기록 생성 시 사용합니다.
+   * 메서드는 @Transactional로 실행되어 모든 단계가 하나의 트랜잭션 경계 안에서 수행됩니다.
+   * 내부 서비스 호출 중 예외가 발생하면 전체 작업은 롤백됩니다.
+   *
+   * @param toUserId 수신자의 사용자 ID
+   * @param amount   이체할 포인트 양 (양수여야 함)
+   * @param meId     송신자의 사용자 ID
+   * @return TransferResponse — 요청한 이체 금액 및 송신자의 before/after 포인트 정보를 포함한 응답
    */
   @Transactional
   public TransferResponse transferTo(long toUserId, long amount, long meId) {
     String transactionUUID = UUID.randomUUID().toString();
-    @Nullable UserPoint myPoint = pointQRepository.findUserPointBy(meId);
+    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(meId, toUserId,
+        amount);
 
-    if (myPoint == null) {
-      throw new BusinessException(PointErrorCode.SENDER_NOT_FOUND);
-    }
-
-    if (!pointQRepository.isUserExistBy(toUserId)) {
-      throw new BusinessException(PointErrorCode.RECEIVER_NOT_FOUND);
-    }
-
-    if (!myPoint.hasEnoughPoint(amount)) {
-      throw new BusinessException(PointErrorCode.NOT_ENOUGH_POINT);
-    }
-
-    UserPointChangeDetailDTO myPointChangeDetail = authInnerService.addPoint(meId, -amount);
-    UserPointChangeDetailDTO otherPointChangeDetail = authInnerService.addPoint(toUserId, amount);
-    var transferOutInfo = pointMapper.toTransactionInfoDTO(
-        transactionUUID,
-        meId,
-        amount,
-        myPointChangeDetail
-    );
+    var transferOutInfo = TransactionInfoDTO.builder()
+        .transactionUUID(transactionUUID)
+        .userId(meId)
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getSenderBeforePoint())
+        .afterPoint(pointChangeDetail.getSenderAfterPoint())
+        .build();
 
     transactionInnerService.createTransferOutTransaction(transferOutInfo);
 
-    var transferInInfo = pointMapper.toTransactionInfoDTO(
-        transactionUUID,
-        toUserId,
-        amount,
-        otherPointChangeDetail
-    );
+    var transferInInfo = TransactionInfoDTO.builder()
+        .transactionUUID(transactionUUID)
+        .userId(toUserId)
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getReceiverBeforePoint())
+        .afterPoint(pointChangeDetail.getReceiverAfterPoint())
+        .build();
 
     transactionInnerService.createTransferInTransaction(transferInInfo);
 
-    return TransferResponse.from(amount, myPointChangeDetail);
-
+    return TransferResponse.builder()
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getSenderBeforePoint())
+        .afterPoint(pointChangeDetail.getSenderAfterPoint())
+        .build();
   }
 
 }
