@@ -34,7 +34,6 @@ public class AuthServiceTest {
 
   @InjectMocks
   private AuthService authService;
-  private AuthErrorCode UserErrorCode;
 
   private SignupRequest createRequest() {
     return new SignupRequest("test@example.com", "password", "username");
@@ -67,7 +66,7 @@ public class AuthServiceTest {
 
     assertThatThrownBy(() -> authService.signup(request))
         .isInstanceOf(BusinessException.class)
-        .hasMessage(UserErrorCode.DUPLICATE_EMAIL.getMessage());
+        .hasMessage(AuthErrorCode.DUPLICATE_EMAIL.getMessage());
 
     then(authRepository).should(never()).save(any(User.class));
   }
@@ -80,7 +79,7 @@ public class AuthServiceTest {
 
     assertThatThrownBy(() -> authService.signup(request))
         .isInstanceOf(BusinessException.class)
-        .hasMessage(UserErrorCode.DUPLICATE_USERNAME.getMessage());
+        .hasMessage(AuthErrorCode.DUPLICATE_USERNAME.getMessage());
 
     then(authRepository).should(never()).save(any(User.class));
   }
