@@ -24,10 +24,10 @@ public class EventEntry {
   private Long id;
 
   @Column(nullable = false)
-  private Long eventId;
+  private long eventId;
 
   @Column(nullable = false)
-  private Long userId;
+  private long userId;
 
   @CreatedDate
   @Column(nullable = false, updatable = false)
@@ -37,7 +37,7 @@ public class EventEntry {
   private long reward;
 
   @Builder
-  public EventEntry(Long userId, Long eventId, long reward) {
+  public EventEntry(long userId, long eventId, long reward) {
     this.userId = userId;
     this.eventId = eventId;
     this.reward = reward;

@@ -45,7 +45,7 @@ public class Event {
   private LocalDateTime endAt;
 
   @Builder
-  public Event(String title, String description, EventStatus status, Long totalStock,
+  public Event(String title, String description, EventStatus status, long totalStock,
       LocalDateTime startAt, LocalDateTime endAt) {
     this.title = title;
     this.description = description;

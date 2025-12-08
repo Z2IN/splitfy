@@ -21,10 +21,10 @@ public class EventNumber {
   private Long id;
 
   @Column(nullable = false)
-  private Long eventId;
+  private long eventId;
 
   @Column(nullable = false)
-  private int no;
+  private int number;
 
   @Column(nullable = false)
   private long reward;

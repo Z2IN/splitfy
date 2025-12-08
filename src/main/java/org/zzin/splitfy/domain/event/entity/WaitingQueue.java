@@ -24,10 +24,10 @@ public class WaitingQueue {
   private Long id;
 
   @Column(nullable = false)
-  private Long eventId;
+  private long eventId;
 
   @Column(nullable = false)
-  private Long userId;
+  private long userId;
 
   @CreatedDate
   @Column(nullable = false, updatable = false)
@@ -36,7 +36,7 @@ public class WaitingQueue {
   private LocalDateTime expireAt; //입장 순서 후 만료 시간(입장 후 30초)
 
   @Builder
-  public WaitingQueue(Long eventId, Long userId, LocalDateTime expireAt) {
+  public WaitingQueue(long eventId, long userId, LocalDateTime expireAt) {
     this.eventId = eventId;
     this.userId = userId;
     this.expireAt = expireAt;
