@@ -10,7 +10,7 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 @NullMarked
-public class CreateDepositTransactionParamDTO {
+public class TransactionInfoDTO {
 
   private final String transactionUUID;
   private final long userId;

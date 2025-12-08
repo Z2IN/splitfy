@@ -6,7 +6,9 @@ import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.point.dto.request.DepositRequest;
+import org.zzin.splitfy.domain.point.dto.request.TransferRequest;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
+import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,14 @@ public class PointController {
   public CommonResponse<DepositResponse> deposit(@Valid @RequestBody DepositRequest request,
       @AuthenticationPrincipal AuthUser authUser) {
     DepositResponse response = pointService.deposit(authUser.userId(), request.point());
+    return CommonResponse.success(response);
+  }
+
+  @PostMapping("/transfer")
+  public CommonResponse<TransferResponse> transfer(@Valid @RequestBody TransferRequest request,
+      @AuthenticationPrincipal AuthUser authUser) {
+    TransferResponse response = pointService.transferTo(request.toUserId(), request.amount(),
+        authUser.userId());
     return CommonResponse.success(response);
   }
 
