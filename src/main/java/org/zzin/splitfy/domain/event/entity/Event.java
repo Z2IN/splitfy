@@ -13,13 +13,18 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
+import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "events")
 public class Event {
+
+  private static final long MIN_STOCK = 1L;
+  private static final long MAX_STOCK = 100_000L;
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,15 +49,40 @@ public class Event {
   @Column(nullable = false)
   private LocalDateTime endAt;
 
+
   @Builder
-  public Event(String title, String description, EventStatus status, long totalStock,
-      LocalDateTime startAt, LocalDateTime endAt) {
+  private Event(String title, String description, long totalStock,
+      LocalDateTime startAt, LocalDateTime endAt, EventStatus status) {
+
+    validateEventTime(startAt, endAt);
+    validateStock(totalStock);
+
     this.title = title;
     this.description = description;
-    this.status = status;
     this.totalStock = totalStock;
     this.startAt = startAt;
     this.endAt = endAt;
+    this.status = (status != null ? status : EventStatus.SCHEDULED);
+  }
+
+  private static void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
+    LocalDateTime now = LocalDateTime.now();
+
+    if (startAt.isBefore(now)) {
+      throw new BusinessException(EventErrorCode.PAST_START_TIME);
+    }
+    if (startAt.isAfter(endAt)) {
+      throw new BusinessException(EventErrorCode.INVALID_EVENT_TIME);
+    }
+  }
+
+  private static void validateStock(long totalStock) {
+    if (totalStock < MIN_STOCK) {
+      throw new BusinessException(EventErrorCode.INVALID_STOCK);
+    }
+    if (totalStock > MAX_STOCK) {
+      throw new BusinessException(EventErrorCode.STOCK_LIMIT_EXCEEDED);
+    }
   }
 
 }
