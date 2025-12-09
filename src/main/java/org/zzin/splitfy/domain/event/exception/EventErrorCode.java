@@ -8,6 +8,8 @@ import org.zzin.splitfy.common.exception.ErrorCode;
 @Getter
 @RequiredArgsConstructor
 public enum EventErrorCode implements ErrorCode {
+  EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "이벤트가 존재하지 않습니다."),
+
   PAST_START_TIME(HttpStatus.BAD_REQUEST, "이벤트 시작 시간은 현재 시간 이후여야 합니다."),
   INVALID_EVENT_TIME(HttpStatus.BAD_REQUEST, "이벤트 종료 시간은 시작 시간 이후여야 합니다."),
 

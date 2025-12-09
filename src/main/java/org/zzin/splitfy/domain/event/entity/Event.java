@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
@@ -65,7 +66,8 @@ public class Event {
     this.status = (status != null ? status : EventStatus.SCHEDULED);
   }
 
-  private static void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
+  @NullMarked
+  private void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
     LocalDateTime now = LocalDateTime.now();
 
     if (startAt.isBefore(now)) {
@@ -76,7 +78,7 @@ public class Event {
     }
   }
 
-  private static void validateStock(long totalStock) {
+  private void validateStock(long totalStock) {
     if (totalStock < MIN_STOCK) {
       throw new BusinessException(EventErrorCode.INVALID_STOCK);
     }
