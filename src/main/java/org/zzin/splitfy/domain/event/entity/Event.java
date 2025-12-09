@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zzin.splitfy.common.exception.BusinessException;
@@ -49,23 +50,19 @@ public class Event {
   private LocalDateTime endAt;
 
 
-  private Event(String title, String description, long totalStock, LocalDateTime startAt,
-      LocalDateTime endAt, EventStatus status) {
+  @Builder
+  private Event(String title, String description, long totalStock,
+      LocalDateTime startAt, LocalDateTime endAt, EventStatus status) {
+
+    validateEventTime(startAt, endAt);
+    validateStock(totalStock);
+
     this.title = title;
     this.description = description;
     this.totalStock = totalStock;
     this.startAt = startAt;
     this.endAt = endAt;
-    this.status = status;
-  }
-
-  public static Event create(String title, String description, long totalStock,
-      LocalDateTime startAt, LocalDateTime endAt) {
-
-    validateEventTime(startAt, endAt);
-    validateStock(totalStock);
-
-    return new Event(title, description, totalStock, startAt, endAt, EventStatus.SCHEDULED);
+    this.status = (status != null ? status : EventStatus.SCHEDULED);
   }
 
   private static void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {

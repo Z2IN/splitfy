@@ -19,8 +19,13 @@ public class EventService {
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
 
-    Event event = Event.create(request.title(), request.description(), request.totalStock(),
-        request.startAt(), request.endAt());
+    Event event = Event.builder()
+        .title(request.title())
+        .description(request.description())
+        .totalStock(request.totalStock())
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .build();
 
     Event saved = eventRepository.save(event);
 
