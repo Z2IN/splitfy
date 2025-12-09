@@ -67,7 +67,7 @@ public class Event {
   }
 
   @NullMarked
-  private static void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
+  private void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
     LocalDateTime now = LocalDateTime.now();
 
     if (startAt.isBefore(now)) {
@@ -78,7 +78,7 @@ public class Event {
     }
   }
 
-  private static void validateStock(long totalStock) {
+  private void validateStock(long totalStock) {
     if (totalStock < MIN_STOCK) {
       throw new BusinessException(EventErrorCode.INVALID_STOCK);
     }
