@@ -51,10 +51,19 @@ public class User {
     if (amount < 0) {
       throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
     }
-    // 오버플로우 체크
     if (Long.MAX_VALUE - this.point < amount) {
       throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
     }
     this.point += amount;
+  }
+
+  public void deductPoint(long amount) {
+    if (amount < 0) {
+      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
+    }
+    if (this.point < amount) {
+      throw new BusinessException(AuthErrorCode.INSUFFICIENT_POINT_BALANCE);
+    }
+    this.point -= amount;
   }
 }
