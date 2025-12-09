@@ -16,21 +16,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@PreAuthorize("isAuthenticated()")
 public class PointController {
 
   private final PointService pointService;
 
   @GetMapping("/users/points")
-  @PreAuthorize("hasAuthentication()")
-  public CommonResponse<Long> getUsersPoint(@PathVariable("id") long id,
-      @AuthenticationPrincipal AuthUser authUser) {
+  public CommonResponse<Long> getUsersPoint(@AuthenticationPrincipal AuthUser authUser) {
     return CommonResponse.success(pointService.getPointBy(authUser.userId()));
   }
 
