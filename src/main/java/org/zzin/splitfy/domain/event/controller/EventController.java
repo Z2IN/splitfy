@@ -32,7 +32,7 @@ public class EventController {
 
   @GetMapping("/{eventId}")
   public CommonResponse<EventResponse> getEvent(
-      @PathVariable Long eventId) {
+      @PathVariable("eventId") Long eventId) {
     EventResponse response = eventService.getEvent(eventId);
     return CommonResponse.success(response);
   }
