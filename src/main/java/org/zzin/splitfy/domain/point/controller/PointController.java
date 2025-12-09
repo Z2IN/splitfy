@@ -29,8 +29,7 @@ public class PointController {
   private final PointService pointService;
 
   @GetMapping("/users/points")
-  public CommonResponse<Long> getUsersPoint(@PathVariable("id") long id,
-      @AuthenticationPrincipal AuthUser authUser) {
+  public CommonResponse<Long> getUsersPoint(@AuthenticationPrincipal AuthUser authUser) {
     return CommonResponse.success(pointService.getPointBy(authUser.userId()));
   }
 
