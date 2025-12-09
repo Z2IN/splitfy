@@ -10,6 +10,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.NullMarked;
+import org.zzin.splitfy.common.exception.BusinessException;
+import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -43,5 +45,16 @@ public class User {
     user.password = encodedPassword;
     user.point = 0L;
     return user;
+  }
+
+  public void addPoint(long amount) {
+    if (amount < 0) {
+      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
+    }
+    // 오버플로우 체크
+    if (Long.MAX_VALUE - this.point < amount) {
+      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
+    }
+    this.point += amount;
   }
 }
