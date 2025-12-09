@@ -1,18 +1,17 @@
 package org.zzin.splitfy.domain.auth.service;
 
 import lombok.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 
+@NullMarked
 public interface AuthInnerService {
 
   long getPointBy(long userId);
 
-  default @NonNull PointChangeResultDTO addPoint(long userId, long amount) {
-    // TODO: 사용자의 포인트를 실제로 증가시켜야함.
-    // 예외 처리도 필요함.
-    return new PointChangeResultDTO(0, 0);
-  }
+  @NonNull
+  PointChangeResultDTO addPoint(long userId, long amount);
 
   default @NonNull PointTransferSummaryDTO transferPoint(long senderId, long receiverId,
       long amount) {
