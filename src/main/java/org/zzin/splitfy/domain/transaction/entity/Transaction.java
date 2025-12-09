@@ -28,26 +28,26 @@ public class Transaction {
   private Long id;
 
   @Column(nullable = false)
-  private Long userId;
+  private long userId;
 
   @Column(nullable = false)
-  private Long amount;
+  private long amount;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private TransactionType type;
 
   @Column(nullable = false)
-  private Long beforePoint;
+  private long beforePoint;
 
   @Column(nullable = false)
-  private Long afterPoint;
+  private long afterPoint;
 
   @CreatedDate
   @Column(nullable = false, updatable = false)
   private LocalDateTime transactionTime;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false)
   private String uuid;
 
   @Builder
