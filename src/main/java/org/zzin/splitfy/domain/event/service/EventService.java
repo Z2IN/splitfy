@@ -19,6 +19,7 @@ import org.zzin.splitfy.domain.event.repository.EventRepository;
 public class EventService {
 
   private final EventRepository eventRepository;
+  private final EventMapper eventMapper;
 
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
@@ -42,6 +43,6 @@ public class EventService {
     Event event = eventRepository.findById(eventId).orElseThrow(() -> new BusinessException(
         EventErrorCode.EVENT_NOT_FOUND));
 
-    return EventMapper.toResponse(event);
+    return eventMapper.toResponse(event);
   }
 }

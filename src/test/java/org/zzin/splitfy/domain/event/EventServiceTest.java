@@ -4,7 +4,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import java.time.LocalDateTime;
@@ -18,6 +17,7 @@ import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
+import org.zzin.splitfy.domain.event.mapper.EventMapper;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.service.EventService;
 
@@ -26,6 +26,9 @@ public class EventServiceTest {
 
   @Mock
   private EventRepository eventRepository;
+
+  @Mock
+  private EventMapper eventMapper;
 
   @InjectMocks
   private EventService eventService;
@@ -48,17 +51,24 @@ public class EventServiceTest {
     Event event = createEvent();
     given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
 
+    EventResponse mapped = new EventResponse(
+        1L,
+        event.getTitle(),
+        event.getDescription(),
+        event.getStartAt(),
+        event.getEndAt(),
+        event.getTotalStock(),
+        event.getStatus()
+    );
+    given(eventMapper.toResponse(event)).willReturn(mapped);
+
     // when
     EventResponse response = eventService.getEvent(eventId);
 
     // then
     then(eventRepository).should(times(1)).findById(eventId);
-    assertThat(response.title()).isEqualTo(event.getTitle());
-    assertThat(response.description()).isEqualTo(event.getDescription());
-    assertThat(response.startAt()).isEqualTo(event.getStartAt());
-    assertThat(response.endAt()).isEqualTo(event.getEndAt());
-    assertThat(response.totalStock()).isEqualTo(event.getTotalStock());
-    assertThat(response.eventStatus()).isEqualTo(event.getStatus());
+    then(eventMapper).should(times(1)).toResponse(event);
+    assertThat(response).isEqualTo(mapped);
   }
 
   @Test
@@ -73,6 +83,5 @@ public class EventServiceTest {
         .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
     then(eventRepository).should(times(1)).findById(eventId);
-    then(eventRepository).should(never()).save(null);
   }
 }
