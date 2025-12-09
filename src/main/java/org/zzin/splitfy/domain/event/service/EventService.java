@@ -4,9 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
+import org.zzin.splitfy.domain.event.exception.EventErrorCode;
+import org.zzin.splitfy.domain.event.mapper.EventMapper;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 
 @Service
@@ -30,5 +34,14 @@ public class EventService {
     Event saved = eventRepository.save(event);
 
     return new CreateEventResponse(saved.getId());
+  }
+
+  @Transactional(readOnly = true)
+  public EventResponse getEvent(Long eventId) {
+
+    Event event = eventRepository.findById(eventId).orElseThrow(() -> new BusinessException(
+        EventErrorCode.EVENT_NOT_FOUND));
+
+    return EventMapper.toResponse(event);
   }
 }

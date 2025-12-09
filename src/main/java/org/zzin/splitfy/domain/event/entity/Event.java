@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
@@ -65,6 +66,7 @@ public class Event {
     this.status = (status != null ? status : EventStatus.SCHEDULED);
   }
 
+  @NullMarked
   private static void validateEventTime(LocalDateTime startAt, LocalDateTime endAt) {
     LocalDateTime now = LocalDateTime.now();
 
