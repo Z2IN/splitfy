@@ -70,6 +70,4 @@ public class DefaultAuthInnerService implements AuthInnerService {
         receiver.getPoint()
     );
   }
-
-
 }
