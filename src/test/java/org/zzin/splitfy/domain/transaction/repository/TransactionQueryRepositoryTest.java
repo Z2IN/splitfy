@@ -8,8 +8,6 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-// DataJpaTest already wraps tests in transactions and rolls back; explicit @Transactional is not
-// required
 import org.zzin.splitfy.common.config.JPAuditingConfig;
 import org.zzin.splitfy.common.config.QueryDSLConfig;
 import org.zzin.splitfy.domain.transaction.dto.TransactionDetailDTO;
