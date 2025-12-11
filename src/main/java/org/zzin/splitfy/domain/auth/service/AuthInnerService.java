@@ -13,10 +13,7 @@ public interface AuthInnerService {
   @NonNull
   PointChangeResultDTO addPoint(long userId, long amount);
 
-  default @NonNull PointTransferSummaryDTO transferPoint(long senderId, long receiverId,
-      long amount) {
-    // TODO: 포인트 송금 로직 구현.
-    // 검증 및 예외 처리 필요.
-    return new PointTransferSummaryDTO(0, 0, 0, 0);
-  }
+  @NonNull
+  PointTransferSummaryDTO transferPoint(long senderId, long receiverId, long amount);
+
 }
