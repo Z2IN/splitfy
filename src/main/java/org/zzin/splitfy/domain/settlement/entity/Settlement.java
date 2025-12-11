@@ -33,9 +33,6 @@ public class Settlement {
   private Long issuerId;
 
   @Column(nullable = false)
-  private String title;
-
-  @Column(nullable = false)
   private long totalAmount;
 
   @Enumerated(EnumType.STRING)
@@ -57,9 +54,8 @@ public class Settlement {
   @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<SettlementParticipant> participants = new ArrayList<>();
 
-  public Settlement(Long issuerId, String title, long totalAmount) {
+  public Settlement(Long issuerId, long totalAmount) {
     this.issuerId = issuerId;
-    this.title = title;
     this.totalAmount = totalAmount;
     this.status = SettlementStatus.PENDING;
     this.issuedAt = LocalDateTime.now();
