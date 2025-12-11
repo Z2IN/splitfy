@@ -85,7 +85,7 @@ public class TransactionQueryRepositoryTest {
     transactionRepository.saveAndFlush(other);
 
     // 페이지 0(최신 2건) 조회: 사용자 1의 전체 거래는 3건이어야 함
-    Page<TransactionDetailDTO> page0 = transactionQueryRepository.getTransactionsByUserId(1L, 0, 2);
+    Page<TransactionDetailDTO> page0 = transactionQueryRepository.fetchTransactionsBy(1L, 0, 2);
 
     // 전체 건수 확인 (다른 사용자 거래는 제외)
     assertThat(page0.getTotalElements()).isEqualTo(3);
@@ -101,7 +101,7 @@ public class TransactionQueryRepositoryTest {
     assertThat(content0.get(0).getTransactionTime()).isNotNull();
 
     // 페이지 1(나머지 1건) 조회: 두 번째 페이지에서 남은 t1(100L)이 반환되는지 확인
-    Page<TransactionDetailDTO> page1 = transactionQueryRepository.getTransactionsByUserId(1L, 1, 2);
+    Page<TransactionDetailDTO> page1 = transactionQueryRepository.fetchTransactionsBy(1L, 1, 2);
     assertThat(page1.getTotalElements()).isEqualTo(3);
     assertThat(page1.getContent()).hasSize(1);
     assertThat(page1.getContent().get(0).getAmount()).isEqualTo(100L);

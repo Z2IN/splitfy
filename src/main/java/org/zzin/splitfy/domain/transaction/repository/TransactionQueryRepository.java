@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.transaction.repository;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -14,11 +15,12 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
+@NullMarked
 public class TransactionQueryRepository {
 
   private final JPAQueryFactory jpaQueryFactory;
 
-  public Page<TransactionDetailDTO> getTransactionsByUserId(long userId, int page, int size) {
+  public Page<TransactionDetailDTO> fetchTransactionsBy(long userId, int page, int size) {
     QTransaction transaction = QTransaction.transaction;
 
     var content = jpaQueryFactory

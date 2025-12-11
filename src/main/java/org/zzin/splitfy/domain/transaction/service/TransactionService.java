@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.transaction.service;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@NullMarked
 public class TransactionService {
 
   private final TransactionQueryRepository transactionQueryRepository;
@@ -21,10 +23,10 @@ public class TransactionService {
    * @param page   0부터 시작하는 페이지 인덱스(예: 첫 페이지는 0)
    * @param size   페이지당 조회할 레코드 수
    * @return 거래 상세 정보의 페이지(Page<TransactionDetailDTO>). 빈 페이지가 될 수 있습니다.
-   * @see TransactionQueryRepository#getTransactionsByUserId(long, int, int)
+   * @see TransactionQueryRepository#fetchTransactionsBy(long, int, int)
    */
   @Transactional(readOnly = true)
-  public Page<TransactionDetailDTO> getTransactionsByUserId(long userId, int page, int size) {
-    return transactionQueryRepository.getTransactionsByUserId(userId, page, size);
+  public Page<TransactionDetailDTO> getTransactionsBy(long userId, int page, int size) {
+    return transactionQueryRepository.fetchTransactionsBy(userId, page, size);
   }
 }
