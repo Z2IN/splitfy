@@ -39,6 +39,7 @@ public class TransactionQueryRepositoryTest {
 
   @Test
   void getTransactionsByUserId_사용자_거래목록_조회_성공() throws Exception {
+    // 사용자 1의 거래 3개를 생성 (순서/시간 비교를 위해 시간차를 둘 예정)
     Transaction t1 = Transaction.builder()
         .userId(1L)
         .amount(100L)
@@ -66,6 +67,7 @@ public class TransactionQueryRepositoryTest {
         .uuid("uuid-3")
         .build();
 
+    // 다른 사용자의 거래를 하나 추가하여 조회 시 필터링이 올바르게 동작하는지 확인
     Transaction other = Transaction.builder()
         .userId(2L)
         .amount(999L)
@@ -82,16 +84,23 @@ public class TransactionQueryRepositoryTest {
     transactionRepository.saveAndFlush(t3);
     transactionRepository.saveAndFlush(other);
 
+    // 페이지 0(최신 2건) 조회: 사용자 1의 전체 거래는 3건이어야 함
     Page<TransactionDetailDTO> page0 = transactionQueryRepository.getTransactionsByUserId(1L, 0, 2);
 
+    // 전체 건수 확인 (다른 사용자 거래는 제외)
     assertThat(page0.getTotalElements()).isEqualTo(3);
+
     List<TransactionDetailDTO> content0 = page0.getContent();
+
+    // 페이지 사이즈만큼 반환되는지 확인
     assertThat(content0).hasSize(2);
 
+    // 최신순 정렬 검증: 가장 최신(마지막 저장된 t3)이 첫 번째로 와야 함
     assertThat(content0.get(0).getAmount()).isEqualTo(50L);
     assertThat(content0.get(1).getAmount()).isEqualTo(200L);
     assertThat(content0.get(0).getTransactionTime()).isNotNull();
 
+    // 페이지 1(나머지 1건) 조회: 두 번째 페이지에서 남은 t1(100L)이 반환되는지 확인
     Page<TransactionDetailDTO> page1 = transactionQueryRepository.getTransactionsByUserId(1L, 1, 2);
     assertThat(page1.getTotalElements()).isEqualTo(3);
     assertThat(page1.getContent()).hasSize(1);
