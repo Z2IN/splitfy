@@ -2,8 +2,11 @@ package org.zzin.splitfy.domain.event;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import java.time.LocalDateTime;
@@ -15,10 +18,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
+import org.zzin.splitfy.domain.event.entity.WaitingQueue;
+import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
+import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
+import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
+import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
 import org.zzin.splitfy.domain.event.service.EventService;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,25 +39,25 @@ public class EventServiceTest {
   @Mock
   private EventMapper eventMapper;
 
+  @Mock
+  private EventEntryRepository eventEntryRepository;
+
+  @Mock
+  private WaitingQueueRepository waitingQueueRepository;
+
+  @Mock
+  private EventQueryRepository eventQueryRepository;
+
   @InjectMocks
   private EventService eventService;
-
-  private Event createEvent() {
-    LocalDateTime now = LocalDateTime.now();
-    return Event.builder()
-        .title("테스트 이벤트")
-        .description("설명")
-        .startAt(now.plusDays(1))
-        .endAt(now.plusDays(2))
-        .totalStock(100L)
-        .build();
-  }
 
   @Test
   void getEvent_존재하는_이벤트조회_성공() {
     // given
     Long eventId = 1L;
-    Event event = createEvent();
+    LocalDateTime now = LocalDateTime.now();
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
     given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
 
     EventResponse mapped = new EventResponse(
@@ -83,5 +92,210 @@ public class EventServiceTest {
         .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
     then(eventRepository).should(times(1)).findById(eventId);
+  }
+
+  @Test
+  void joinQueue_첫번째_참가자_성공() {
+    // given
+    long eventId = 1L;
+    long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue savedQueue = createWaitingQueue(1L, eventId, userId);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventEntryRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(false);
+    given(waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(false);
+    given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
+    given(
+        eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
+        0L);
+
+    // when
+    JoinQueueResponse response = eventService.joinQueue(eventId, userId);
+
+    // then
+    assertThat(response.eventId()).isEqualTo(eventId);
+    assertThat(response.position()).isEqualTo(0L);
+    then(waitingQueueRepository).should(times(1)).save(any(WaitingQueue.class));
+    then(eventQueryRepository).should(times(1))
+        .countAhead(anyLong(), any(LocalDateTime.class), anyLong());
+  }
+
+  @Test
+  void joinQueue_여러명_참가후_순번_정상_계산() {
+    // given
+    Long eventId = 1L;
+    Long userId = 101L;
+    LocalDateTime now = LocalDateTime.now();
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue savedQueue = createWaitingQueue(5L, eventId, userId);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventEntryRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(false);
+    given(waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(false);
+    given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
+    given(
+        eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
+        4L); // 앞에 4명
+
+    // when
+    JoinQueueResponse response = eventService.joinQueue(eventId, userId);
+
+    // then
+    assertThat(response.position()).isEqualTo(4L);
+  }
+
+  @Test
+  void joinQueue_이벤트_존재하지않으면_예외발생() {
+    // given
+    Long eventId = 999L;
+    Long userId = 100L;
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
+
+    then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
+  }
+
+  @Test
+  void joinQueue_이벤트_시작전이면_예외발생() {
+    // given
+    Long eventId = 1L;
+    Long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event futureEvent = createEventWithTime("미래 이벤트", now.plusDays(1), now.plusDays(2),
+        EventStatus.OPENED, 100L);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(futureEvent));
+
+    // when & then
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
+
+    then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
+  }
+
+  @Test
+  void joinQueue_이벤트_종료후면_예외발생() {
+    // given
+    Long eventId = 1L;
+    Long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event endedEvent = createEventWithTime("종료된 이벤트", now.minusDays(2), now.minusDays(1),
+        EventStatus.CLOSED, 100L);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(endedEvent));
+
+    // when & then
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
+
+    then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
+  }
+
+  @Test
+  void joinQueue_이미_참여한_사용자면_예외발생() {
+    // given
+    Long eventId = 1L;
+    Long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventEntryRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(true); // 이미 참여
+
+    // when & then
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.ALREADY_PARTICIPATED.getMessage());
+
+    then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
+  }
+
+  @Test
+  void joinQueue_이미_대기열에_있는_사용자면_예외발생() {
+    // given
+    Long eventId = 1L;
+    Long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventEntryRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(false);
+    given(waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(
+        true); // 이미 대기열에 있음
+
+    // when & then
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.ALREADY_IN_QUEUE.getMessage());
+
+    then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
+  }
+
+  private Event createEventWithTime(String title, LocalDateTime startAt, LocalDateTime endAt,
+      EventStatus status, long totalStock) {
+    // Validation을 피하기 위해 일단 미래 시간으로 생성
+    LocalDateTime tempTime = LocalDateTime.now().plusDays(10);
+    Event event = Event.builder()
+        .title(title)
+        .description("설명")
+        .startAt(tempTime)
+        .endAt(tempTime.plusDays(1))
+        .totalStock(totalStock)
+        .status(status)
+        .build();
+
+    // Reflection으로 실제 원하는 시간 설정
+    try {
+      var startAtField = Event.class.getDeclaredField("startAt");
+      startAtField.setAccessible(true);
+      startAtField.set(event, startAt);
+
+      var endAtField = Event.class.getDeclaredField("endAt");
+      endAtField.setAccessible(true);
+      endAtField.set(event, endAt);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return event;
+  }
+
+  private WaitingQueue createWaitingQueue(Long id, Long eventId, Long userId) {
+    WaitingQueue queue = WaitingQueue.builder()
+        .eventId(eventId)
+        .userId(userId)
+        .build();
+
+    // Reflection을 사용하여 id와 joinAt 설정
+    try {
+      var idField = WaitingQueue.class.getDeclaredField("id");
+      idField.setAccessible(true);
+      idField.set(queue, id);
+
+      var joinAtField = WaitingQueue.class.getDeclaredField("joinAt");
+      joinAtField.setAccessible(true);
+      joinAtField.set(queue, LocalDateTime.now().plusDays(2));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return queue;
   }
 }
