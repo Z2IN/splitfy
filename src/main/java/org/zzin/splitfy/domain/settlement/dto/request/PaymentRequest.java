@@ -1,10 +1,12 @@
 package org.zzin.splitfy.domain.settlement.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record PaymentRequest(
+    @NotBlank(message = "정산 제목을 입력해주세요.")
     String title,
     @Positive(message = "결제 금액이 0 이하일 수 없습니다.")
     long paidAmount,
