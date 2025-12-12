@@ -87,4 +87,14 @@ public class Event {
     }
   }
 
+  @NullMarked
+  public void validateEventPeriod(LocalDateTime now) {
+    if (now.isBefore(this.startAt)) {
+      throw new BusinessException(EventErrorCode.EVENT_NOT_STARTED);
+    }
+    if (now.isAfter(this.endAt)) {
+      throw new BusinessException(EventErrorCode.EVENT_ENDED);
+    }
+  }
+
 }

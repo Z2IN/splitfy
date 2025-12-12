@@ -15,6 +15,13 @@ public enum EventErrorCode implements ErrorCode {
 
   INVALID_STOCK(HttpStatus.BAD_REQUEST, "재고는 1개 이상이어야 합니다."),
   STOCK_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "재고 설정 한도를 초과했습니다."),
+
+  EVENT_NOT_STARTED(HttpStatus.BAD_REQUEST, "이벤트가 시작되지 않았습니다."),
+  EVENT_ENDED(HttpStatus.BAD_REQUEST, "종료된 이벤트 입니다."),
+
+  ALREADY_IN_QUEUE(HttpStatus.CONFLICT, "이미 대기열에 참여 중입니다."),
+  ALREADY_PARTICIPATED(HttpStatus.BAD_REQUEST, "이미 참여한 이벤트입니다."),
+
   ;
 
   private final HttpStatus status;

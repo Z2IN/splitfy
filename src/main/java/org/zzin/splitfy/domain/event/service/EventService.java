@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.event.service;
 
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
@@ -8,10 +9,15 @@ import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
+import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
+import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
+import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
+import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
 
 @Service
 @NullMarked
@@ -20,6 +26,9 @@ public class EventService {
 
   private final EventRepository eventRepository;
   private final EventMapper eventMapper;
+  private final EventEntryRepository eventEntryRepository;
+  private final WaitingQueueRepository waitingQueueRepository;
+  private final EventQueryRepository eventQueryRepository;
 
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
@@ -44,5 +53,38 @@ public class EventService {
         EventErrorCode.EVENT_NOT_FOUND));
 
     return eventMapper.toResponse(event);
+  }
+
+  @Transactional
+  public JoinQueueResponse joinQueue(Long eventId, Long userId) {
+
+    Event event = eventRepository.findById(eventId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
+
+    //이벤트 진행중인지 확인
+    event.validateEventPeriod(LocalDateTime.now());
+
+    // 중복 참여 확인 (이미 번호 선택 성공한 사람)
+    if (eventEntryRepository.existsByEventIdAndUserId(eventId, userId)) {
+      throw new BusinessException(EventErrorCode.ALREADY_PARTICIPATED);
+    }
+
+    // 대기열 중복 확인 (이미 대기열인 사람)
+    if (waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)) {
+      throw new BusinessException(EventErrorCode.ALREADY_IN_QUEUE);
+    }
+
+    WaitingQueue queue = WaitingQueue.builder()
+        .eventId(eventId)
+        .userId(userId)
+        .build();
+
+    WaitingQueue saved = waitingQueueRepository.save(queue);
+
+    // 내 앞순번 계산
+    long position = eventQueryRepository.countAhead(saved.getEventId(), saved.getJoinAt(),
+        saved.getId());
+
+    return new JoinQueueResponse(eventId, position, saved.getJoinAt());
   }
 }
