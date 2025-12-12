@@ -24,6 +24,7 @@ import org.zzin.splitfy.common.security.jwt.JwtProperties;
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
+@RequiredArgsConstructor
 public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
