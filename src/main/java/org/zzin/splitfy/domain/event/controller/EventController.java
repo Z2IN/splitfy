@@ -43,7 +43,7 @@ public class EventController {
   @PostMapping("/{eventId}/queue")
   public CommonResponse<JoinQueueResponse> joinQueue(
       @PathVariable("eventId") Long eventId, @AuthenticationPrincipal AuthUser authUser) {
-    JoinQueueResponse response = eventService.joinQueue(eventId, authUser.userId());
+    JoinQueueResponse response = eventService.joinQueue(eventId, authUser);
     return CommonResponse.success(response);
   }
 

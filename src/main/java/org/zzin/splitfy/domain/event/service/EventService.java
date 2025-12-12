@@ -6,6 +6,7 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
+import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
@@ -56,7 +57,8 @@ public class EventService {
   }
 
   @Transactional
-  public JoinQueueResponse joinQueue(Long eventId, Long userId) {
+  public JoinQueueResponse joinQueue(Long eventId, AuthUser authUser) {
+    long userId = authUser.userId();
 
     Event event = eventRepository.findById(eventId)
         .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
