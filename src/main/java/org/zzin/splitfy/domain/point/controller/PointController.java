@@ -29,13 +29,13 @@ public class PointController {
 
   @GetMapping("/users/points")
   public CommonResponse<Long> getUsersPoint(@AuthenticationPrincipal AuthUser authUser) {
-    return CommonResponse.success(pointService.getPointBy(authUser.userId()));
+    return CommonResponse.success(pointService.getPointBy(authUser));
   }
 
   @PostMapping("/deposit")
   public CommonResponse<DepositResponse> deposit(@Valid @RequestBody DepositRequest request,
       @AuthenticationPrincipal AuthUser authUser) {
-    DepositResponse response = pointService.deposit(authUser.userId(), request.point());
+    DepositResponse response = pointService.deposit(authUser, request.point());
     return CommonResponse.success(response);
   }
 
@@ -43,7 +43,7 @@ public class PointController {
   public CommonResponse<TransferResponse> transfer(@Valid @RequestBody TransferRequest request,
       @AuthenticationPrincipal AuthUser authUser) {
     TransferResponse response = pointService.transferTo(request.toUserId(), request.amount(),
-        authUser.userId());
+        authUser);
     return CommonResponse.success(response);
   }
 

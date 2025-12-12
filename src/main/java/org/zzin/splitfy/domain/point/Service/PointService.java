@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
@@ -26,24 +27,25 @@ public class PointService {
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
    *
-   * @param userId 조회할 사용자의 고유 식별자
+   * @param authUser 인증된 사용자 정보
    * @return 요청한 사용자의 현재 포인트 잔액
    */
-  public long getPointBy(long userId) {
-    return authInnerService.getPointBy(userId);
+  public long getPointBy(AuthUser authUser) {
+    return authInnerService.getPointBy(authUser.userId());
   }
 
   /**
    * 지정된 사용자 계정에 포인트를 적립합니다.
    *
-   * @param userId 포인트를 적립할 사용자 ID
-   * @param amount 적립할 포인트 금액
+   * @param authUser 포인트를 적립할 사용자 정보
+   * @param amount   적립할 포인트 금액
    * @return DepositResponse 적립한 금액과 적립 후 사용자 포인트 잔액을 포함한 응답 객체
    * @implNote 트랜잭션 추적을 위해 UUID를 생성하여 트랜잭션 기록 생성 시 사용합니다.
    */
   @Transactional
-  public DepositResponse deposit(long userId, long amount) {
+  public DepositResponse deposit(AuthUser authUser, long amount) {
     String transactionUUID = UUID.randomUUID().toString();
+    long userId = authUser.userId();
     PointChangeResultDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
     TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
@@ -52,6 +54,7 @@ public class PointService {
         .beforePoint(pointChangeDetail.getBeforePoint())
         .afterPoint(pointChangeDetail.getAfterPoint())
         .build();
+
     transactionInnerService.createDepositTransaction(param);
 
     return new DepositResponse(amount, pointChangeDetail.getAfterPoint());
@@ -62,18 +65,19 @@ public class PointService {
    *
    * @param toUserId 수신자의 사용자 ID
    * @param amount   이체할 포인트 양 (양수여야 함)
-   * @param meId     송신자의 사용자 ID
+   * @param authUser 인증된 송신자 정보
    * @return TransferResponse — 요청한 이체 금액 및 송신자의 before/after 포인트 정보를 포함한 응답
    */
   @Transactional
-  public TransferResponse transferTo(long toUserId, long amount, long meId) {
+  public TransferResponse transferTo(long toUserId, long amount, AuthUser authUser) {
     String transactionUUID = UUID.randomUUID().toString();
-    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(meId, toUserId,
+    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(authUser.userId(),
+        toUserId,
         amount);
 
     var transferOutInfo = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
-        .userId(meId)
+        .userId(authUser.userId())
         .amount(amount)
         .beforePoint(pointChangeDetail.getSenderBeforePoint())
         .afterPoint(pointChangeDetail.getSenderAfterPoint())
