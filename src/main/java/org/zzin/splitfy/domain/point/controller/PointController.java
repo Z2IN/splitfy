@@ -29,7 +29,7 @@ public class PointController {
 
   @GetMapping("/users/points")
   public CommonResponse<Long> getUsersPoint(@AuthenticationPrincipal AuthUser authUser) {
-    return CommonResponse.success(pointService.getPointBy(authUser.userId()));
+    return CommonResponse.success(pointService.getPointBy(authUser));
   }
 
   @PostMapping("/deposit")

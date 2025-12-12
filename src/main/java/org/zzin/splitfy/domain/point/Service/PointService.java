@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
@@ -26,11 +27,11 @@ public class PointService {
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
    *
-   * @param userId 조회할 사용자의 고유 식별자
+   * @param authUser 인증된 사용자 정보
    * @return 요청한 사용자의 현재 포인트 잔액
    */
-  public long getPointBy(long userId) {
-    return authInnerService.getPointBy(userId);
+  public long getPointBy(AuthUser authUser) {
+    return authInnerService.getPointBy(authUser.userId());
   }
 
   /**
