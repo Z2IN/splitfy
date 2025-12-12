@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
+import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
@@ -114,7 +115,7 @@ public class EventServiceTest {
         0L);
 
     // when
-    JoinQueueResponse response = eventService.joinQueue(eventId, userId);
+    JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
 
     // then
     assertThat(response.eventId()).isEqualTo(eventId);
@@ -144,7 +145,7 @@ public class EventServiceTest {
         4L); // 앞에 4명
 
     // when
-    JoinQueueResponse response = eventService.joinQueue(eventId, userId);
+    JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
 
     // then
     assertThat(response.position()).isEqualTo(4L);
@@ -159,7 +160,7 @@ public class EventServiceTest {
     given(eventRepository.findById(eventId)).willReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, new AuthUser(userId)))
         .isInstanceOf(BusinessException.class)
         .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
@@ -179,7 +180,7 @@ public class EventServiceTest {
     given(eventRepository.findById(eventId)).willReturn(Optional.of(futureEvent));
 
     // when & then
-    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, new AuthUser(userId)))
         .isInstanceOf(BusinessException.class)
         .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
 
@@ -199,7 +200,7 @@ public class EventServiceTest {
     given(eventRepository.findById(eventId)).willReturn(Optional.of(endedEvent));
 
     // when & then
-    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, new AuthUser(userId)))
         .isInstanceOf(BusinessException.class)
         .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
 
@@ -219,7 +220,7 @@ public class EventServiceTest {
     given(eventEntryRepository.existsByEventIdAndUserId(eventId, userId)).willReturn(true); // 이미 참여
 
     // when & then
-    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, new AuthUser(userId)))
         .isInstanceOf(BusinessException.class)
         .hasMessage(EventErrorCode.ALREADY_PARTICIPATED.getMessage());
 
@@ -241,7 +242,7 @@ public class EventServiceTest {
         true); // 이미 대기열에 있음
 
     // when & then
-    assertThatThrownBy(() -> eventService.joinQueue(eventId, userId))
+    assertThatThrownBy(() -> eventService.joinQueue(eventId, new AuthUser(userId)))
         .isInstanceOf(BusinessException.class)
         .hasMessage(EventErrorCode.ALREADY_IN_QUEUE.getMessage());
 
