@@ -29,7 +29,7 @@ public class TransactionController {
       @AuthenticationPrincipal AuthUser authUser, @PageableDefault Pageable pageable) {
 
     var pageResult = transactionService.getTransactionsBy(
-        authUser.userId(), pageable.getPageNumber(), pageable.getPageSize());
+        authUser, pageable.getPageNumber(), pageable.getPageSize());
     Page<GetTransactionsByResponse> response = pageResult.map(GetTransactionsByResponse::fromDto);
 
     return CommonPage.of(response);
