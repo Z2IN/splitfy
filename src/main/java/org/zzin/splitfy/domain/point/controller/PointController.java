@@ -35,7 +35,7 @@ public class PointController {
   @PostMapping("/deposit")
   public CommonResponse<DepositResponse> deposit(@Valid @RequestBody DepositRequest request,
       @AuthenticationPrincipal AuthUser authUser) {
-    DepositResponse response = pointService.deposit(authUser.userId(), request.point());
+    DepositResponse response = pointService.deposit(authUser, request.point());
     return CommonResponse.success(response);
   }
 

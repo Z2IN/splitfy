@@ -10,6 +10,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.Service.PointService;
@@ -42,7 +43,7 @@ class PointServiceTest {
     given(authInnerService.addPoint(userId, amount))
         .willReturn(new PointChangeResultDTO(beforePoint, afterPoint));
 
-    DepositResponse response = pointService.deposit(userId, amount);
+    DepositResponse response = pointService.deposit(new AuthUser(userId), amount);
 
     assertThat(response).isNotNull();
     assertThat(response.amount()).isEqualTo(amount);

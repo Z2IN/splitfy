@@ -37,14 +37,15 @@ public class PointService {
   /**
    * 지정된 사용자 계정에 포인트를 적립합니다.
    *
-   * @param userId 포인트를 적립할 사용자 ID
-   * @param amount 적립할 포인트 금액
+   * @param authUser 포인트를 적립할 사용자 정보
+   * @param amount   적립할 포인트 금액
    * @return DepositResponse 적립한 금액과 적립 후 사용자 포인트 잔액을 포함한 응답 객체
    * @implNote 트랜잭션 추적을 위해 UUID를 생성하여 트랜잭션 기록 생성 시 사용합니다.
    */
   @Transactional
-  public DepositResponse deposit(long userId, long amount) {
+  public DepositResponse deposit(AuthUser authUser, long amount) {
     String transactionUUID = UUID.randomUUID().toString();
+    long userId = authUser.userId();
     PointChangeResultDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
     TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
@@ -53,6 +54,7 @@ public class PointService {
         .beforePoint(pointChangeDetail.getBeforePoint())
         .afterPoint(pointChangeDetail.getAfterPoint())
         .build();
+
     transactionInnerService.createDepositTransaction(param);
 
     return new DepositResponse(amount, pointChangeDetail.getAfterPoint());
