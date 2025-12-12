@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.settlement.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,9 +23,9 @@ public class SettlementController {
   @PostMapping
   public CommonResponse<SettlementResponse> createSettlement(
       @AuthenticationPrincipal AuthUser authUser,
-      @RequestBody SettlementRequest request
+      @Valid @RequestBody SettlementRequest request
   ) {
-    SettlementResponse response = settlementService.createSettlement(request);
+    SettlementResponse response = settlementService.createSettlement(authUser, request);
     return CommonResponse.success(response);
   }
 

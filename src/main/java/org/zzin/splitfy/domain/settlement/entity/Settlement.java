@@ -61,18 +61,24 @@ public class Settlement {
     this.issuedAt = LocalDateTime.now();
   }
 
-  public void succeed() {
-    this.status = SettlementStatus.SUCCEEDED;
-    this.succeededAt = LocalDateTime.now();
-  }
-
-  public void fail() {
-    this.status = SettlementStatus.FAILED;
-  }
-
   // 양방향 연결
   public void addPayment(Payment payment) {
     this.payments.add(payment);
     payment.setSettlement(this);
+  }
+
+  public void addPayment(long paidAmount, long payerId, String title) {
+    Payment payment = new Payment(paidAmount, payerId, paidAmount, title);
+    this.payments.add(payment);
+    payment.setSettlement(this);
+  }
+
+  public void addParticipant(Long userId, long netAmount) {
+    SettlementParticipant participant = new SettlementParticipant(
+        this,
+        userId,
+        netAmount
+    );
+    this.participants.add(participant);
   }
 }
