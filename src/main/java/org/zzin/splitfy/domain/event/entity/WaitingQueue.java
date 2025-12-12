@@ -36,10 +36,9 @@ public class WaitingQueue {
   private LocalDateTime expireAt; //입장 순서 후 만료 시간(입장 후 30초)
 
   @Builder
-  public WaitingQueue(long eventId, long userId, LocalDateTime expireAt) {
+  public WaitingQueue(long eventId, long userId) {
     this.eventId = eventId;
     this.userId = userId;
-    this.expireAt = expireAt;
   }
 
 }

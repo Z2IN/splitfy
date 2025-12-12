@@ -5,4 +5,6 @@ import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 
 public interface WaitingQueueRepository extends JpaRepository<WaitingQueue, Long> {
 
+  boolean existsByEventIdAndUserId(long eventId, long userId);
+
 }
