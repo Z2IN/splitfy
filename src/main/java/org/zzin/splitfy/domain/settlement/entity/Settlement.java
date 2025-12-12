@@ -1,6 +1,5 @@
 package org.zzin.splitfy.domain.settlement.entity;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,11 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -46,14 +42,6 @@ public class Settlement {
   @Column
   private LocalDateTime succeededAt;
 
-  // Payment(1:N)
-  @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL)
-  private List<Payment> payments = new ArrayList<>();
-
-  // Participant(1:N)
-  @OneToMany(mappedBy = "settlement", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<SettlementParticipant> participants = new ArrayList<>();
-
   public Settlement(Long issuerId, long totalAmount) {
     this.issuerId = issuerId;
     this.totalAmount = totalAmount;
@@ -61,24 +49,13 @@ public class Settlement {
     this.issuedAt = LocalDateTime.now();
   }
 
-  // 양방향 연결
-  public void addPayment(Payment payment) {
-    this.payments.add(payment);
-    payment.setSettlement(this);
-  }
-
-  public void addPayment(long paidAmount, long payerId, String title) {
+  public Payment createPayment(long paidAmount, long payerId, String title) {
     Payment payment = new Payment(paidAmount, payerId, paidAmount, title);
-    this.payments.add(payment);
-    payment.setSettlement(this);
+    payment.setSettlementId(this.id);
+    return payment;
   }
 
-  public void addParticipant(Long userId, long netAmount) {
-    SettlementParticipant participant = new SettlementParticipant(
-        this,
-        userId,
-        netAmount
-    );
-    this.participants.add(participant);
+  public SettlementParticipant createParticipant(Long userId, long netAmount) {
+    return new SettlementParticipant(this, userId, netAmount);
   }
 }

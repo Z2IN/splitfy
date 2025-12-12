@@ -4,11 +4,8 @@ import static jakarta.persistence.GenerationType.IDENTITY;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,10 +21,8 @@ public class Payment {
   @GeneratedValue(strategy = IDENTITY)
   private Long id;
 
-  // 정산 ID (FK)
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "settlement_id", nullable = false)
-  private Settlement settlement;
+  @Column(name = "settlement_id", nullable = false)
+  private Long settlementId;
 
   @Column(name = "paid_amount", nullable = false)
   private Long paidAmount;
@@ -48,7 +43,7 @@ public class Payment {
     this.title = title;
   }
 
-  public void setSettlement(Settlement settlement) {
-    this.settlement = settlement;
+  public void setSettlementId(Long settlementId) {
+    this.settlementId = settlementId;
   }
 }

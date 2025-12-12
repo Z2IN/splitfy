@@ -14,8 +14,12 @@ import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.dto.request.SettlementRequest;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementResponse;
+import org.zzin.splitfy.domain.settlement.entity.Payment;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
+import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
 import org.zzin.splitfy.domain.settlement.exception.SettlementErrorCode;
+import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
+import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
 @Service
@@ -24,6 +28,8 @@ import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 public class SettlementService {
 
   private final SettlementRepository settlementRepository;
+  private final PaymentRepository paymentRepository;
+  private final SettlementParticipantRepository settlementParticipantRepository;
 
   @Transactional
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
@@ -65,11 +71,12 @@ public class SettlementService {
 
     // Payment 엔티티 생성 및 저장
     for (PaymentRequest paymentRequest : paymentRequests) {
-      settlement.addPayment(
+      Payment payment = settlement.createPayment(
           paymentRequest.paidAmount(),
           paymentRequest.payerId(),
           paymentRequest.title()
       );
+      paymentRepository.save(payment);
     }
 
     // 최소 정산 알고리즘: 사용자별 정산 금액 계산
@@ -77,7 +84,11 @@ public class SettlementService {
 
     // SettlementParticipant 저장 (각 사용자의 정산 금액)
     for (Map.Entry<Long, Long> entry : netBalance.entrySet()) {
-      settlement.addParticipant(entry.getKey(), entry.getValue());
+      SettlementParticipant participant = settlement.createParticipant(
+          entry.getKey(),
+          entry.getValue()
+      );
+      settlementParticipantRepository.save(participant);
     }
 
     return new SettlementResponse(settlement.getId());
