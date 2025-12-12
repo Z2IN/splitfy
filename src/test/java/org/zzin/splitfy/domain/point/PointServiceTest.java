@@ -83,7 +83,7 @@ class PointServiceTest {
             .receiverAfterPoint(otherAfter)
             .build());
 
-    TransferResponse response = pointService.transferTo(toUserId, amount, meId);
+    TransferResponse response = pointService.transferTo(toUserId, amount, new AuthUser(meId));
 
     assertThat(response).isNotNull();
     assertThat(response.amount()).isEqualTo(amount);

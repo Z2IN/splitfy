@@ -65,18 +65,19 @@ public class PointService {
    *
    * @param toUserId 수신자의 사용자 ID
    * @param amount   이체할 포인트 양 (양수여야 함)
-   * @param meId     송신자의 사용자 ID
+   * @param authUser 인증된 송신자 정보
    * @return TransferResponse — 요청한 이체 금액 및 송신자의 before/after 포인트 정보를 포함한 응답
    */
   @Transactional
-  public TransferResponse transferTo(long toUserId, long amount, long meId) {
+  public TransferResponse transferTo(long toUserId, long amount, AuthUser authUser) {
     String transactionUUID = UUID.randomUUID().toString();
-    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(meId, toUserId,
+    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(authUser.userId(),
+        toUserId,
         amount);
 
     var transferOutInfo = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
-        .userId(meId)
+        .userId(authUser.userId())
         .amount(amount)
         .beforePoint(pointChangeDetail.getSenderBeforePoint())
         .afterPoint(pointChangeDetail.getSenderAfterPoint())

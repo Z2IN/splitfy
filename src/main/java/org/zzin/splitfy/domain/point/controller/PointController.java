@@ -43,7 +43,7 @@ public class PointController {
   public CommonResponse<TransferResponse> transfer(@Valid @RequestBody TransferRequest request,
       @AuthenticationPrincipal AuthUser authUser) {
     TransferResponse response = pointService.transferTo(request.toUserId(), request.amount(),
-        authUser.userId());
+        authUser);
     return CommonResponse.success(response);
   }
 
