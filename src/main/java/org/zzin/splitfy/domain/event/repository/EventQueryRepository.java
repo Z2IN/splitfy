@@ -3,11 +3,13 @@ package org.zzin.splitfy.domain.event.repository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Repository;
 import org.zzin.splitfy.domain.event.entity.QWaitingQueue;
 
 @Repository
 @RequiredArgsConstructor
+@NullMarked
 public class EventQueryRepository {
 
   private final JPAQueryFactory queryFactory;
