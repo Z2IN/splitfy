@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
@@ -57,6 +58,7 @@ class SettlementServiceTest {
     SettlementRequest request = new SettlementRequest(List.of(payment));
 
     Settlement savedSettlement = new Settlement(issuerId, 30000L);
+    ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
     SettlementResponse response = settlementService.createSettlement(authUser, request);
@@ -133,6 +135,7 @@ class SettlementServiceTest {
     SettlementRequest request = new SettlementRequest(List.of(payment1, payment2));
 
     Settlement savedSettlement = new Settlement(issuerId, 50000L);
+    ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
     SettlementResponse response = settlementService.createSettlement(authUser, request);
@@ -175,6 +178,7 @@ class SettlementServiceTest {
     SettlementRequest request = new SettlementRequest(List.of(payment));
 
     Settlement savedSettlement = new Settlement(issuerId, 9999L);
+    ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
     SettlementResponse response = settlementService.createSettlement(authUser, request);
@@ -208,6 +212,7 @@ class SettlementServiceTest {
     SettlementRequest request = new SettlementRequest(List.of(payment1, payment2));
 
     Settlement savedSettlement = new Settlement(issuerId, 33000L);
+    ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
     SettlementResponse response = settlementService.createSettlement(authUser, request);

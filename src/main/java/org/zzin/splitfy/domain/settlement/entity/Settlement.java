@@ -56,6 +56,6 @@ public class Settlement {
   }
 
   public SettlementParticipant createParticipant(Long userId, long netAmount) {
-    return new SettlementParticipant(this, userId, netAmount);
+    return new SettlementParticipant(this.id, userId, netAmount);
   }
 }

@@ -67,7 +67,7 @@ public class SettlementService {
 
     // Settlement 생성 및 저장
     Settlement settlement = new Settlement(issuerId, totalAmount);
-    settlementRepository.save(settlement);
+    settlement = settlementRepository.save(settlement);
 
     // Payment 엔티티 생성 및 저장
     for (PaymentRequest paymentRequest : paymentRequests) {
