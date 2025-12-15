@@ -24,6 +24,9 @@ public enum EventErrorCode implements ErrorCode {
 
   NOT_IN_QUEUE(HttpStatus.NOT_FOUND, "대기열 참여 내역이 없습니다."),
 
+
+  INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서 값입니다."),
+
   ;
 
   private final HttpStatus status;

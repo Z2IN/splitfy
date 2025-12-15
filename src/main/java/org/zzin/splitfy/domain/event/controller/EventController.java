@@ -1,10 +1,9 @@
 package org.zzin.splitfy.domain.event.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +11,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.zzin.splitfy.common.dto.CommonPage;
+import org.zzin.splitfy.common.dto.CommonCursor;
 import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
@@ -47,13 +48,29 @@ public class EventController {
   }
 
   @GetMapping
-  public CommonResponse<CommonPage<GetEventsByResponse>> getEvents(
-      @PageableDefault Pageable pageable) {
+  public CommonResponse<CommonCursor<GetEventsByResponse>> getEvents(
+      @RequestParam(required = false) String cursor,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
-    var pageResult = eventService.getEvents(pageable.getPageNumber(), pageable.getPageSize());
-    Page<GetEventsByResponse> response = pageResult.map(GetEventsByResponse::fromDto);
+    EventCursor eventCursor = EventCursor.from(cursor);
 
-    return CommonResponse.success(CommonPage.of(response));
+    var events = eventService.getEventsByCursor(eventCursor, size);
+
+    boolean hasNext = events.size() > size;
+    String nextCursor = null;
+
+    if (hasNext) {
+      events = events.subList(0, size);
+      var lastEvent = events.getLast();
+      nextCursor = EventCursor.of(lastEvent.getStatus().priority(), lastEvent.getEventId())
+          .encode();
+    }
+
+    var response = events.stream()
+        .map(GetEventsByResponse::fromDto)
+        .toList();
+
+    return CommonResponse.success(CommonCursor.of(response, nextCursor, hasNext));
   }
 
   @PostMapping("/{eventId}/queue")

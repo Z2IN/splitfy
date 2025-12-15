@@ -1,13 +1,15 @@
 package org.zzin.splitfy.domain.event.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
-import org.springframework.data.domain.Page;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
@@ -108,8 +110,11 @@ public class EventService {
     return new QueuePositionResponse(position);
   }
 
+  /**
+   * @param eventCursor null이면 첫 페이지를 조회한다.
+   */
   @Transactional(readOnly = true)
-  public Page<EventSummaryDTO> getEvents(int page, int size) {
-    return eventQueryRepository.getEvents(page, size);
+  public List<EventSummaryDTO> getEventsByCursor(@Nullable EventCursor eventCursor, int size) {
+    return eventQueryRepository.getEventsByCursor(eventCursor, size);
   }
 }

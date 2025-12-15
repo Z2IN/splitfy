@@ -1,17 +1,20 @@
 package org.zzin.splitfy.domain.event.repository;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.support.PageableExecutionUtils;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
+import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.entity.QEvent;
 import org.zzin.splitfy.domain.event.entity.QWaitingQueue;
+import org.zzin.splitfy.domain.event.enums.EventStatus;
 
 @Repository
 @RequiredArgsConstructor
@@ -39,11 +42,12 @@ public class EventQueryRepository {
     return count == null ? 0L : count;
   }
 
-
-  public Page<EventSummaryDTO> getEvents(int page, int size) {
+  public List<EventSummaryDTO> getEventsByCursor(@Nullable EventCursor cursor, int size) {
     QEvent event = QEvent.event;
 
-    var content = queryFactory
+    var p = statusOrder(event);
+
+    var query = queryFactory
         .select(Projections.constructor(EventSummaryDTO.class,
             event.id,
             event.title,
@@ -52,15 +56,27 @@ public class EventQueryRepository {
             event.totalStock,
             event.status))
         .from(event)
-        .orderBy(event.id.desc())
-        .offset((long) page * size)
-        .limit(size)
-        .fetch();
+        .orderBy(p.asc(), event.id.desc())
+        .limit(size + 1);
 
-    var total = queryFactory
-        .select(event.count())
-        .from(event);
+    // 다음 페이지 조건(정렬: priority ASC, id DESC):
+    // priority > cursorPriority OR (priority == cursorPriority AND id < cursorId)
+    if (cursor != null) {
+      query.where(
+          p.gt(cursor.statusPriority())
+              .or(p.eq(cursor.statusPriority())
+                  .and(event.id.lt(cursor.eventId())))
+      );
+    }
 
-    return PageableExecutionUtils.getPage(content, PageRequest.of(page, size), total::fetchOne);
+    return query.fetch();
   }
+
+  private NumberExpression<Integer> statusOrder(QEvent event) {
+    return new CaseBuilder()
+        .when(event.status.in(EventStatus.SCHEDULED, EventStatus.OPENED)).then(0)
+        .when(event.status.eq(EventStatus.CLOSED)).then(1)
+        .otherwise(2);
+  }
+
 }
