@@ -22,16 +22,16 @@ public class Payment {
   private Long id;
 
   @Column(name = "settlement_id", nullable = false)
-  private Long settlementId;
+  private long settlementId;
 
   @Column(name = "paid_amount", nullable = false)
-  private Long paidAmount;
+  private long paidAmount;
 
   @Column(name = "payer_id", nullable = false)
-  private Long payerId;
+  private long payerId;
 
   @Column(name = "share_amount", nullable = false)
-  private Long shareAmount;
+  private long shareAmount;
 
   @Column(nullable = false)
   private String title;

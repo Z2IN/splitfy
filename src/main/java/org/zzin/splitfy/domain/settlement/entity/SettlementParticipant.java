@@ -19,13 +19,13 @@ public class SettlementParticipant {
   private Long id;
 
   @Column(name = "settlement_id", nullable = false)
-  private Long settlementId;
+  private long settlementId;
 
   @Column(nullable = false)
-  private Long participantId;
+  private long participantId;
 
   @Column
-  private Long settlementAmount;
+  private long settlementAmount;
 
   public SettlementParticipant(Settlement settlement, Long participantId, Long settlementAmount) {
     this.settlementId = settlementId;

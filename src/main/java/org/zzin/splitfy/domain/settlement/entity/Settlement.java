@@ -26,7 +26,7 @@ public class Settlement {
   private Long id;
 
   @Column(nullable = false)
-  private Long issuerId;
+  private long issuerId;
 
   @Column(nullable = false)
   private long totalAmount;
