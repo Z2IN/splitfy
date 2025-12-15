@@ -92,7 +92,7 @@ public class EventService {
   }
 
   @Transactional(readOnly = true)
-  public QueuePositionResponse getQueuePosition(Long eventId, AuthUser authUser) {
+  public QueuePositionResponse getQueuePosition(long eventId, AuthUser authUser) {
     long userId = authUser.userId();
 
     WaitingQueue queue = waitingQueueRepository
