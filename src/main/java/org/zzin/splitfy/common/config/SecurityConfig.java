@@ -1,6 +1,7 @@
 package org.zzin.splitfy.common.config;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,16 +12,21 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.zzin.splitfy.common.security.jwt.JwtAuthenticationFilter;
 import org.zzin.splitfy.common.security.jwt.JwtProperties;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
+  private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,8 +37,9 @@ public class SecurityConfig {
             SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/v1/auth/**").permitAll()
-            .anyRequest().authenticated()
+            .anyRequest().permitAll()
         )
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .httpBasic(httpBasic -> httpBasic.disable())
         .formLogin(form -> form.disable())
         .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
