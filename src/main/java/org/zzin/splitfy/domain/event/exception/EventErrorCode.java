@@ -22,6 +22,8 @@ public enum EventErrorCode implements ErrorCode {
   ALREADY_IN_QUEUE(HttpStatus.CONFLICT, "이미 대기열에 참여 중입니다."),
   ALREADY_PARTICIPATED(HttpStatus.BAD_REQUEST, "이미 참여한 이벤트입니다."),
 
+  NOT_IN_QUEUE(HttpStatus.NOT_FOUND, "대기열 참여 내역이 없습니다."),
+
   ;
 
   private final HttpStatus status;

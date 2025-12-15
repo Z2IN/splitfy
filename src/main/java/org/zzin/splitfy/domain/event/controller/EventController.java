@@ -16,6 +16,7 @@ import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
+import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.service.EventService;
 
 @RestController
@@ -44,6 +45,13 @@ public class EventController {
   public CommonResponse<JoinQueueResponse> joinQueue(
       @PathVariable("eventId") Long eventId, @AuthenticationPrincipal AuthUser authUser) {
     JoinQueueResponse response = eventService.joinQueue(eventId, authUser);
+    return CommonResponse.success(response);
+  }
+
+  @GetMapping("/{eventId}/queue")
+  public CommonResponse<QueuePositionResponse> getQueuePosition(
+      @PathVariable("eventId") Long eventId, @AuthenticationPrincipal AuthUser authUser) {
+    QueuePositionResponse response = eventService.getQueuePosition(eventId, authUser);
     return CommonResponse.success(response);
   }
 
