@@ -2,12 +2,9 @@ package org.zzin.splitfy.domain.settlement.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -21,12 +18,9 @@ public class SettlementParticipant {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // 정산 ID (FK)
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "settlement_id", nullable = false)
-  private Settlement settlement;
+  @Column(name = "settlement_id", nullable = false)
+  private Long settlementId;
 
-  // 사용자 ID
   @Column(nullable = false)
   private Long participantId;
 
@@ -34,7 +28,7 @@ public class SettlementParticipant {
   private Long settlementAmount;
 
   public SettlementParticipant(Settlement settlement, Long participantId, Long settlementAmount) {
-    this.settlement = settlement;
+    this.settlementId = settlementId;
     this.participantId = participantId;
     this.settlementAmount = settlementAmount;
   }
