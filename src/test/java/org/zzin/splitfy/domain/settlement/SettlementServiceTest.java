@@ -57,7 +57,7 @@ class SettlementServiceTest {
     );
     SettlementRequest request = new SettlementRequest(List.of(payment));
 
-    Settlement savedSettlement = new Settlement(issuerId, 30000L);
+    Settlement savedSettlement = new Settlement(issuerId, 30000L, 0L);
     ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
@@ -134,7 +134,7 @@ class SettlementServiceTest {
 
     SettlementRequest request = new SettlementRequest(List.of(payment1, payment2));
 
-    Settlement savedSettlement = new Settlement(issuerId, 50000L);
+    Settlement savedSettlement = new Settlement(issuerId, 50000L, 0L);
     ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
@@ -177,7 +177,7 @@ class SettlementServiceTest {
     );
     SettlementRequest request = new SettlementRequest(List.of(payment));
 
-    Settlement savedSettlement = new Settlement(issuerId, 9999L);
+    Settlement savedSettlement = new Settlement(issuerId, 9999L, 1L);
     ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 
@@ -211,7 +211,7 @@ class SettlementServiceTest {
 
     SettlementRequest request = new SettlementRequest(List.of(payment1, payment2));
 
-    Settlement savedSettlement = new Settlement(issuerId, 33000L);
+    Settlement savedSettlement = new Settlement(issuerId, 33000L, 0L);
     ReflectionTestUtils.setField(savedSettlement, "id", 1L);
     given(settlementRepository.save(any(Settlement.class))).willReturn(savedSettlement);
 

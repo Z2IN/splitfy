@@ -31,6 +31,9 @@ public class Settlement {
   @Column(nullable = false)
   private long totalAmount;
 
+  @Column(nullable = false)
+  private Long remainder = 0L;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private SettlementStatus status;
@@ -42,9 +45,10 @@ public class Settlement {
   @Column
   private LocalDateTime succeededAt;
 
-  public Settlement(Long issuerId, long totalAmount) {
+  public Settlement(Long issuerId, long totalAmount, Long remainder) {
     this.issuerId = issuerId;
     this.totalAmount = totalAmount;
+    this.remainder = remainder;
     this.status = SettlementStatus.PENDING;
     this.issuedAt = LocalDateTime.now();
   }

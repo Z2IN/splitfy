@@ -42,6 +42,7 @@ public class SettlementService {
     // 총 지불 금액 / 정산 금액 계산
     Map<Long, Long> contributed = new HashMap<>();
     Map<Long, Long> allocated = new HashMap<>();
+    long totalRemainder = 0L;
 
     for (PaymentRequest paymentRequest : paymentRequests) {
       long paidAmount = paymentRequest.paidAmount();
@@ -55,6 +56,7 @@ public class SettlementService {
       int count = allocationIds.size();    // 정산 대상자 수
       long eachShare = paidAmount / count; // 1인당 정산 금액
       long remainder = paidAmount % count; // 회사가 부담하는 금액
+      totalRemainder += remainder;
 
       // 참여자들에게 eachShare만 부과
       for (Long userId : allocationIds) {
@@ -66,7 +68,7 @@ public class SettlementService {
     long totalAmount = allocated.values().stream().mapToLong(Long::longValue).sum();
 
     // Settlement 생성 및 저장
-    Settlement settlement = new Settlement(issuerId, totalAmount);
+    Settlement settlement = new Settlement(issuerId, totalAmount, totalRemainder);
     settlement = settlementRepository.save(settlement);
 
     // Payment 엔티티 생성 및 저장
