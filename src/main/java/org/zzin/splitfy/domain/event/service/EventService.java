@@ -11,6 +11,7 @@ import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
+import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
 import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
@@ -88,5 +89,20 @@ public class EventService {
         saved.getId());
 
     return new JoinQueueResponse(eventId, position, saved.getJoinAt());
+  }
+
+  @Transactional(readOnly = true)
+  public QueuePositionResponse getQueuePosition(Long eventId, AuthUser authUser) {
+    long userId = authUser.userId();
+
+    WaitingQueue queue = waitingQueueRepository
+        .findByEventIdAndUserId(eventId, userId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.NOT_IN_QUEUE));
+
+    long position = eventQueryRepository.countAhead(
+        queue.getEventId(), queue.getJoinAt(), queue.getId()
+    );
+
+    return new QueuePositionResponse(position);
   }
 }

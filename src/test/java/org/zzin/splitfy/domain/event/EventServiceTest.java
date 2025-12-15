@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -20,6 +21,7 @@ import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
+import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
 import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
@@ -248,6 +250,63 @@ public class EventServiceTest {
 
     then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
   }
+
+
+  @Test
+  void getQueuePosition_대기열_존재하면_내_앞사람_수_반환() {
+    // given
+    Long eventId = 10L;
+    long userId = 99L;
+
+    AuthUser authUser = mock(AuthUser.class);
+    given(authUser.userId()).willReturn(userId);
+
+    LocalDateTime joinAt = LocalDateTime.of(2025, 12, 15, 10, 0);
+    Long queueId = 777L;
+
+    WaitingQueue queue = mock(WaitingQueue.class);
+    given(queue.getEventId()).willReturn(eventId);
+    given(queue.getJoinAt()).willReturn(joinAt);
+    given(queue.getId()).willReturn(queueId);
+
+    given(waitingQueueRepository.findByEventIdAndUserId(eventId, userId))
+        .willReturn(Optional.of(queue));
+
+    long aheadCount = 5L;
+    given(eventQueryRepository.countAhead(eventId, joinAt, queueId))
+        .willReturn(aheadCount);
+
+    // when
+    QueuePositionResponse response = eventService.getQueuePosition(eventId, authUser);
+
+    // then
+    assertThat(response).isNotNull();
+    assertThat(response.position()).isEqualTo(aheadCount);
+
+    then(waitingQueueRepository).should().findByEventIdAndUserId(eventId, userId);
+    then(eventQueryRepository).should().countAhead(eventId, joinAt, queueId);
+  }
+
+  @Test
+  void getQueuePosition_대기열_없으면_NOT_IN_QUEUE_예외() {
+    // given
+    Long eventId = 10L;
+    long userId = 99L;
+
+    AuthUser authUser = mock(AuthUser.class);
+    given(authUser.userId()).willReturn(userId);
+
+    given(waitingQueueRepository.findByEventIdAndUserId(eventId, userId))
+        .willReturn(Optional.empty());
+
+    // when / then
+    assertThatThrownBy(() -> eventService.getQueuePosition(eventId, authUser))
+        .isInstanceOf(BusinessException.class)
+        .hasMessageContaining(
+            EventErrorCode.NOT_IN_QUEUE.getMessage());
+  }
+
+  //====================== 편의 메서드 ============================
 
   private Event createEventWithTime(String title, LocalDateTime startAt, LocalDateTime endAt,
       EventStatus status, long totalStock) {
