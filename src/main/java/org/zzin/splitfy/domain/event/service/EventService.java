@@ -3,10 +3,12 @@ package org.zzin.splitfy.domain.event.service;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
@@ -104,5 +106,10 @@ public class EventService {
     );
 
     return new QueuePositionResponse(position);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<EventSummaryDTO> getEvents(int page, int size) {
+    return eventQueryRepository.getEvents(page, size);
   }
 }
