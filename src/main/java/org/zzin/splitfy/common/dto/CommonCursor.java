@@ -1,8 +1,15 @@
 package org.zzin.splitfy.common.dto;
 
-public record CommonCursor(
-    String cursor,
+import java.util.List;
+
+public record CommonCursor<T>(
+    List<T> contents,
+    String nextCursor,
     boolean hasNext
 ) {
 
+  public static <T> CommonCursor<T> of(List<T> contents, String nextCursor,
+      boolean hasNext) {
+    return new CommonCursor<>(contents, nextCursor, hasNext);
+  }
 }
