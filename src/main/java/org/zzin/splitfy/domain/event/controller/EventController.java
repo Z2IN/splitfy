@@ -41,6 +41,7 @@ public class EventController {
   }
 
   @GetMapping("/{eventId}")
+  @PreAuthorize("permitAll()")
   public CommonResponse<EventResponse> getEvent(
       @PathVariable("eventId") Long eventId) {
     EventResponse response = eventService.getEvent(eventId);
@@ -48,29 +49,15 @@ public class EventController {
   }
 
   @GetMapping
+  @PreAuthorize("permitAll()")
   public CommonResponse<CommonCursor<GetEventsByResponse>> getEvents(
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
     EventCursor eventCursor = EventCursor.from(cursor);
+    CommonCursor<GetEventsByResponse> response = eventService.getEventsByCursor(eventCursor, size);
 
-    var events = eventService.getEventsByCursor(eventCursor, size);
-
-    boolean hasNext = events.size() > size;
-    String nextCursor = null;
-
-    if (hasNext) {
-      events = events.subList(0, size);
-      var lastEvent = events.getLast();
-      nextCursor = EventCursor.of(lastEvent.getStatus().priority(), lastEvent.getEventId())
-          .encode();
-    }
-
-    var response = events.stream()
-        .map(GetEventsByResponse::fromDto)
-        .toList();
-
-    return CommonResponse.success(CommonCursor.of(response, nextCursor, hasNext));
+    return CommonResponse.success(response);
   }
 
   @PostMapping("/{eventId}/queue")

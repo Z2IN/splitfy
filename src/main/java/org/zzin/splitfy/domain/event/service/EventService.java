@@ -7,6 +7,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.dto.CommonCursor;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.EventCursor;
@@ -14,6 +15,7 @@ import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.GetEventsByResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
@@ -114,7 +116,24 @@ public class EventService {
    * @param eventCursor null이면 첫 페이지를 조회한다.
    */
   @Transactional(readOnly = true)
-  public List<EventSummaryDTO> getEventsByCursor(@Nullable EventCursor eventCursor, int size) {
-    return eventQueryRepository.getEventsByCursor(eventCursor, size);
+  public CommonCursor<GetEventsByResponse> getEventsByCursor(@Nullable EventCursor eventCursor,
+      int size) {
+    List<EventSummaryDTO> events = eventQueryRepository.getEventsByCursor(eventCursor, size);
+
+    boolean hasNext = events.size() > size;
+    String nextCursor = null;
+
+    if (hasNext) {
+      events = events.subList(0, size);
+      EventSummaryDTO lastEvent = events.get(size - 1);
+      nextCursor = EventCursor.of(lastEvent.getStatus().priority(), lastEvent.getEventId())
+          .encode();
+    }
+
+    List<GetEventsByResponse> response = events.stream()
+        .map(GetEventsByResponse::fromDto)
+        .toList();
+
+    return CommonCursor.of(response, nextCursor, hasNext);
   }
 }

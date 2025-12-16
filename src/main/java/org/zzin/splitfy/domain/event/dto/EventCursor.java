@@ -1,9 +1,12 @@
 package org.zzin.splitfy.domain.event.dto;
 
+import java.util.Base64;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 
+@NullMarked
 public record EventCursor(
     int statusPriority,
     long eventId
@@ -13,18 +16,19 @@ public record EventCursor(
     return new EventCursor(statusPriority, eventId);
   }
 
-  @Nullable
-  public static EventCursor from(@Nullable String cursor) {
+  public static @Nullable EventCursor from(@Nullable String cursor) {
     if (cursor == null || cursor.isBlank()) {
       return null;
     }
 
-    String[] parts = cursor.split("_");
-    if (parts.length != 2) {
-      throw new BusinessException(EventErrorCode.INVALID_CURSOR);
-    }
-
     try {
+      String decoded = new String(Base64.getUrlDecoder().decode(cursor));
+      String[] parts = decoded.split("_");
+
+      if (parts.length != 2) {
+        throw new BusinessException(EventErrorCode.INVALID_CURSOR);
+      }
+
       int priority = Integer.parseInt(parts[0]);
       long eventId = Long.parseLong(parts[1]);
 
@@ -33,12 +37,13 @@ public record EventCursor(
       }
 
       return new EventCursor(priority, eventId);
-    } catch (NumberFormatException e) {
+    } catch (IllegalArgumentException e) {
       throw new BusinessException(EventErrorCode.INVALID_CURSOR);
     }
   }
 
   public String encode() {
-    return statusPriority + "_" + eventId;
+    String raw = statusPriority + "_" + eventId;
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes());
   }
 }
