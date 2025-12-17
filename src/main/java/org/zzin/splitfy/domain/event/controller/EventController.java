@@ -18,8 +18,10 @@ import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
+import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.GetEventsByResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
@@ -71,6 +73,14 @@ public class EventController {
   public CommonResponse<QueuePositionResponse> getQueuePosition(
       @PathVariable("eventId") Long eventId, @AuthenticationPrincipal AuthUser authUser) {
     QueuePositionResponse response = eventService.getQueuePosition(eventId, authUser);
+    return CommonResponse.success(response);
+  }
+
+  @PostMapping("/{eventId}/entries")
+  public CommonResponse<EventRewardResponse> selectEventNumber(
+      @Valid @RequestBody SelectEventNumberRequest request, @PathVariable("eventId") Long eventId,
+      @AuthenticationPrincipal AuthUser authUser) {
+    EventRewardResponse response = eventService.selectEventNumber(request, eventId, authUser);
     return CommonResponse.success(response);
   }
 

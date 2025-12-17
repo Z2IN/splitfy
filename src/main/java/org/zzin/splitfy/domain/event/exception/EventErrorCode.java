@@ -24,6 +24,11 @@ public enum EventErrorCode implements ErrorCode {
 
   NOT_IN_QUEUE(HttpStatus.NOT_FOUND, "대기열 참여 내역이 없습니다."),
 
+  NOT_YOUR_TURN(HttpStatus.BAD_REQUEST, "차례가 아닙니다."),
+
+  NUMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "유효하지 않은 번호입니다."),
+  NUMBER_ALREADY_TAKEN(HttpStatus.BAD_REQUEST, "이미 선택된 번호입니다."),
+
 
   INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서 값입니다."),
 
