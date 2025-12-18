@@ -27,7 +27,7 @@ public class SettlementParticipant {
   @Column
   private long settlementAmount;
 
-  public SettlementParticipant(long settlementId, long participantId, Long settlementAmount) {
+  public SettlementParticipant(long settlementId, long participantId, long settlementAmount) {
     this.settlementId = settlementId;
     this.participantId = participantId;
     this.settlementAmount = settlementAmount;

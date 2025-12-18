@@ -101,7 +101,6 @@ public class SettlementService {
       settlement.markAsSucceeded();
     } catch (Exception e) {
       settlement.markAsFailed();
-      throw e; // 예외를 다시 던져서 트랜잭션 롤백
     }
 
     return new SettlementResponse(settlement.getId());

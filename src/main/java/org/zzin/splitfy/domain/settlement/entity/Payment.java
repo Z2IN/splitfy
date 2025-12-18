@@ -36,14 +36,14 @@ public class Payment {
   @Column(nullable = false)
   private String title;
 
-  public Payment(Long paidAmount, Long payerId, Long shareAmount, String title) {
+  public Payment(long paidAmount, long payerId, long shareAmount, String title) {
     this.paidAmount = paidAmount;
     this.payerId = payerId;
     this.shareAmount = shareAmount;
     this.title = title;
   }
 
-  public void setSettlementId(Long settlementId) {
+  public void setSettlementId(long settlementId) {
     this.settlementId = settlementId;
   }
 }

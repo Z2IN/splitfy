@@ -32,7 +32,7 @@ public class Settlement {
   private long totalAmount;
 
   @Column(nullable = false)
-  private Long remainder = 0L;
+  private long remainder = 0L;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -45,7 +45,7 @@ public class Settlement {
   @Column
   private LocalDateTime succeededAt;
 
-  public Settlement(Long issuerId, long totalAmount, Long remainder) {
+  public Settlement(long issuerId, long totalAmount, long remainder) {
     this.issuerId = issuerId;
     this.totalAmount = totalAmount;
     this.remainder = remainder;
@@ -59,7 +59,7 @@ public class Settlement {
     return payment;
   }
 
-  public SettlementParticipant createParticipant(Long userId, long netAmount) {
+  public SettlementParticipant createParticipant(long userId, long netAmount) {
     return new SettlementParticipant(this.id, userId, netAmount);
   }
 
