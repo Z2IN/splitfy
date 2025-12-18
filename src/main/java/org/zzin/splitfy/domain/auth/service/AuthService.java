@@ -15,6 +15,7 @@ import org.zzin.splitfy.domain.auth.dto.response.SignupResponse;
 import org.zzin.splitfy.domain.auth.entity.User;
 import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
+import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class AuthService {
   private final AuthRepository authRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtUtil jwtUtil;
+  private final PointInnerService pointInnerService;
 
   @Transactional
   public SignupResponse signup(final SignupRequest request) {
@@ -50,11 +52,13 @@ public class AuthService {
 
     User savedUser = authRepository.save(user);
 
+    long point = pointInnerService.initUserPoint(savedUser.getId());
+
     return new SignupResponse(
         savedUser.getId(),
         savedUser.getEmail(),
         savedUser.getUsername(),
-        savedUser.getPoint()
+        point
     );
   }
 

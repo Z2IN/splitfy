@@ -5,12 +5,14 @@ import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
-import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
-import org.zzin.splitfy.domain.auth.service.AuthInnerService;
+import org.zzin.splitfy.domain.point.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
+import org.zzin.splitfy.domain.point.entity.UserPoint;
+import org.zzin.splitfy.domain.point.exception.PointErrorCode;
+import org.zzin.splitfy.domain.point.repository.UserPointRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
@@ -21,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PointService {
 
-  private final AuthInnerService authInnerService;
   private final TransactionInnerService transactionInnerService;
+  private final UserPointRepository userPointRepository;
 
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
@@ -30,8 +32,11 @@ public class PointService {
    * @param authUser 인증된 사용자 정보
    * @return 요청한 사용자의 현재 포인트 잔액
    */
+  @Transactional(readOnly = true)
   public long getPointBy(AuthUser authUser) {
-    return authInnerService.getPointBy(authUser.userId());
+    UserPoint userPoint = userPointRepository.findByUserId(authUser.userId())
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+    return userPoint.getPoint();
   }
 
   /**
@@ -46,18 +51,24 @@ public class PointService {
   public DepositResponse deposit(AuthUser authUser, long amount) {
     String transactionUUID = UUID.randomUUID().toString();
     long userId = authUser.userId();
-    PointChangeResultDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
+    UserPoint userPoint = userPointRepository.findByUserId(userId)
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+    long beforePoint = userPoint.getPoint();
+
+    userPoint.addPoint(amount);
+
+    long afterPoint = userPoint.getPoint();
     TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
         .userId(userId)
         .amount(amount)
-        .beforePoint(pointChangeDetail.getBeforePoint())
-        .afterPoint(pointChangeDetail.getAfterPoint())
+        .beforePoint(beforePoint)
+        .afterPoint(afterPoint)
         .build();
 
     transactionInnerService.createDepositTransaction(param);
 
-    return new DepositResponse(amount, pointChangeDetail.getAfterPoint());
+    return new DepositResponse(amount, afterPoint);
   }
 
   /**
@@ -71,9 +82,12 @@ public class PointService {
   @Transactional
   public TransferResponse transferTo(long toUserId, long amount, AuthUser authUser) {
     String transactionUUID = UUID.randomUUID().toString();
-    PointTransferSummaryDTO pointChangeDetail = authInnerService.transferPoint(authUser.userId(),
+
+    var pointChangeDetail = transferPoint(
+        authUser.userId(),
         toUserId,
-        amount);
+        amount
+    );
 
     var transferOutInfo = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
@@ -102,4 +116,30 @@ public class PointService {
         .build();
   }
 
+  private PointTransferSummaryDTO transferPoint(long senderId, long receiverId, long amount) {
+    // 본인에게 송금 불가
+    if (senderId == receiverId) {
+      throw new BusinessException(PointErrorCode.CANNOT_TRANSFER_TO_SELF);
+    }
+
+    // 송신자와 수신자 조회
+    UserPoint senderPoint = userPointRepository.findByUserId(senderId)
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+    UserPoint receiverPoint = userPointRepository.findByUserId(receiverId)
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+
+    // 이전 포인트 저장
+    long senderBeforePoint = senderPoint.getPoint();
+    long receiverBeforePoint = receiverPoint.getPoint();
+
+    senderPoint.deductPoint(amount);
+    receiverPoint.addPoint(amount);
+
+    return new PointTransferSummaryDTO(
+        senderBeforePoint,
+        senderPoint.getPoint(),
+        receiverBeforePoint,
+        receiverPoint.getPoint()
+    );
+  }
 }

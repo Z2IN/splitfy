@@ -10,8 +10,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.NullMarked;
-import org.zzin.splitfy.common.exception.BusinessException;
-import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -29,9 +27,6 @@ public class User {
   @Column(nullable = false)
   private String password;
 
-  @Column(nullable = false)
-  private long point = 0L;
-
   @Column(nullable = false, unique = true)
   private String username;
 
@@ -43,27 +38,6 @@ public class User {
     user.email = email;
     user.username = username;
     user.password = encodedPassword;
-    user.point = 0L;
     return user;
-  }
-
-  public void addPoint(long amount) {
-    if (amount < 0) {
-      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
-    }
-    if (Long.MAX_VALUE - this.point < amount) {
-      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
-    }
-    this.point += amount;
-  }
-
-  public void deductPoint(long amount) {
-    if (amount < 0) {
-      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
-    }
-    if (this.point < amount) {
-      throw new BusinessException(AuthErrorCode.INSUFFICIENT_POINT_BALANCE);
-    }
-    this.point -= amount;
   }
 }

@@ -1,8 +1,11 @@
 package org.zzin.splitfy.domain.point;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,13 +13,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
-import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.Service.PointService;
-import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
+import org.zzin.splitfy.domain.point.entity.UserPoint;
+import org.zzin.splitfy.domain.point.exception.PointErrorCode;
+import org.zzin.splitfy.domain.point.repository.UserPointRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
@@ -24,10 +28,10 @@ import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 class PointServiceTest {
 
   @Mock
-  private AuthInnerService authInnerService;
+  private TransactionInnerService transactionInnerService;
 
   @Mock
-  private TransactionInnerService transactionInnerService;
+  private UserPointRepository userPointRepository;
 
   @InjectMocks
   private PointService pointService;
@@ -40,8 +44,10 @@ class PointServiceTest {
     long beforePoint = 100L;
     long afterPoint = 150L;
 
-    given(authInnerService.addPoint(userId, amount))
-        .willReturn(new PointChangeResultDTO(beforePoint, afterPoint));
+    UserPoint userPoint = new UserPoint(userId);
+    userPoint.addPoint(beforePoint);
+
+    given(userPointRepository.findByUserId(userId)).willReturn(Optional.of(userPoint));
 
     DepositResponse response = pointService.deposit(new AuthUser(userId), amount);
 
@@ -49,10 +55,9 @@ class PointServiceTest {
     assertThat(response.amount()).isEqualTo(amount);
     assertThat(response.point()).isEqualTo(afterPoint);
 
-    then(authInnerService).should().addPoint(userId, amount);
+    then(userPointRepository).should().findByUserId(userId);
 
-    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(
-        TransactionInfoDTO.class);
+    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(TransactionInfoDTO.class);
     then(transactionInnerService).should().createDepositTransaction(captor.capture());
 
     TransactionInfoDTO dto = captor.getValue();
@@ -75,13 +80,12 @@ class PointServiceTest {
     long otherBefore = 0L;
     long otherAfter = 50L;
 
-    given(authInnerService.transferPoint(meId, toUserId, amount)).willReturn(
-        PointTransferSummaryDTO.builder()
-            .senderBeforePoint(myBefore)
-            .senderAfterPoint(myAfter)
-            .receiverBeforePoint(otherBefore)
-            .receiverAfterPoint(otherAfter)
-            .build());
+    UserPoint sender = new UserPoint(meId);
+    sender.addPoint(myBefore);
+    UserPoint receiver = new UserPoint(toUserId);
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
 
     TransferResponse response = pointService.transferTo(toUserId, amount, new AuthUser(meId));
 
@@ -90,10 +94,13 @@ class PointServiceTest {
     assertThat(response.beforePoint()).isEqualTo(myBefore);
     assertThat(response.afterPoint()).isEqualTo(myAfter);
 
-    then(authInnerService).should().transferPoint(meId, toUserId, amount);
+    then(userPointRepository).should().findByUserId(meId);
+    then(userPointRepository).should().findByUserId(toUserId);
 
-    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor
-        .forClass(TransactionInfoDTO.class);
+    assertThat(sender.getPoint()).isEqualTo(myAfter);
+    assertThat(receiver.getPoint()).isEqualTo(otherAfter);
+
+    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(TransactionInfoDTO.class);
     then(transactionInnerService).should().createTransferOutTransaction(captor.capture());
     TransactionInfoDTO out = captor.getValue();
     assertThat(out.getUserId()).isEqualTo(meId);
@@ -102,8 +109,7 @@ class PointServiceTest {
     assertThat(out.getAfterPoint()).isEqualTo(myAfter);
     assertThat(out.getTransactionUUID()).isNotBlank();
 
-    ArgumentCaptor<TransactionInfoDTO> captorIn = ArgumentCaptor
-        .forClass(TransactionInfoDTO.class);
+    ArgumentCaptor<TransactionInfoDTO> captorIn = ArgumentCaptor.forClass(TransactionInfoDTO.class);
     then(transactionInnerService).should().createTransferInTransaction(captorIn.capture());
     TransactionInfoDTO in = captorIn.getValue();
     assertThat(in.getUserId()).isEqualTo(toUserId);
@@ -112,5 +118,108 @@ class PointServiceTest {
     assertThat(in.getAfterPoint()).isEqualTo(otherAfter);
     assertThat(in.getTransactionUUID()).isNotBlank();
     assertThat(out.getTransactionUUID()).isEqualTo(in.getTransactionUUID());
+  }
+
+  @Test
+  void transferTo_금액이_0이하면_예외() {
+    long meId = 1L;
+    long toUserId = 2L;
+    long amount = 0L;
+
+    UserPoint sender = new UserPoint(meId);
+    sender.addPoint(100L);
+    UserPoint receiver = new UserPoint(toUserId);
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
+
+    BusinessException ex = assertThrows(BusinessException.class,
+        () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(
+        PointErrorCode.INVALID_POINT_AMOUNT);
+
+    then(userPointRepository).should().findByUserId(meId);
+    then(userPointRepository).should().findByUserId(toUserId);
+    then(transactionInnerService).shouldHaveNoInteractions();
+  }
+
+  @Test
+  void transferTo_자기자신에게_송금하면_예외() {
+    long meId = 1L;
+    long toUserId = meId;
+    long amount = 10L;
+
+    BusinessException ex = assertThrows(BusinessException.class,
+        () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(
+        PointErrorCode.CANNOT_TRANSFER_TO_SELF);
+
+    then(userPointRepository).shouldHaveNoInteractions();
+    then(transactionInnerService).shouldHaveNoInteractions();
+  }
+
+  @Test
+  void transferTo_송신자_없으면_예외() {
+    long meId = 1L;
+    long toUserId = 2L;
+    long amount = 10L;
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.empty());
+
+    BusinessException ex = assertThrows(BusinessException.class,
+        () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(
+        PointErrorCode.USER_NOT_FOUND);
+
+    then(userPointRepository).should().findByUserId(meId);
+    then(transactionInnerService).shouldHaveNoInteractions();
+  }
+
+  @Test
+  void transferTo_수신자_없으면_예외() {
+    long meId = 1L;
+    long toUserId = 2L;
+    long amount = 10L;
+
+    UserPoint sender = new UserPoint(meId);
+    sender.addPoint(100L);
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.empty());
+
+    BusinessException ex = assertThrows(BusinessException.class,
+        () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(
+        PointErrorCode.USER_NOT_FOUND);
+
+    then(userPointRepository).should().findByUserId(meId);
+    then(userPointRepository).should().findByUserId(toUserId);
+    then(transactionInnerService).shouldHaveNoInteractions();
+  }
+
+  @Test
+  void transferTo_잔액부족이면_예외() {
+    long meId = 1L;
+    long toUserId = 2L;
+    long amount = 100L;
+
+    UserPoint sender = new UserPoint(meId);
+    UserPoint receiver = new UserPoint(toUserId);
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
+
+    BusinessException ex = assertThrows(BusinessException.class,
+        () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
+
+    assertThat(ex.getErrorCode()).isEqualTo(PointErrorCode.INSUFFICIENT_POINT_BALANCE);
+
+    then(userPointRepository).should().findByUserId(meId);
+    then(userPointRepository).should().findByUserId(toUserId);
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 }
