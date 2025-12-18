@@ -44,7 +44,6 @@ class PointServiceTest {
     long beforePoint = 100L;
     long afterPoint = 150L;
 
-    // 기존 포인트를 가진 엔티티 준비
     UserPoint userPoint = new UserPoint(userId);
     userPoint.addPoint(beforePoint);
 
