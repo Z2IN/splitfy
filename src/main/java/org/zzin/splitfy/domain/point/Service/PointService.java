@@ -32,6 +32,7 @@ public class PointService {
    * @param authUser 인증된 사용자 정보
    * @return 요청한 사용자의 현재 포인트 잔액
    */
+  @Transactional(readOnly = true)
   public long getPointBy(AuthUser authUser) {
     UserPoint userPoint = userPointRepository.findByUserId(authUser.userId())
         .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
