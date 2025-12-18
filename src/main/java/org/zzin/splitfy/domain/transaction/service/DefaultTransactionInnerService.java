@@ -56,4 +56,9 @@ public class DefaultTransactionInnerService implements TransactionInnerService {
   public void createTransferOutTransaction(TransactionInfoDTO param) {
     createTransaction(param, TransactionType.TRANSFER_OUT);
   }
+
+  @Override
+  public void createRewardTransaction(TransactionInfoDTO param) {
+    createTransaction(param, TransactionType.REWARD);
+  }
 }

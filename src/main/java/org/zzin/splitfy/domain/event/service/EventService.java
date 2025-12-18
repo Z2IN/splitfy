@@ -183,7 +183,7 @@ public class EventService {
     );
 
     //리워드 포인트 지급
-    pointInnerService.sendEventRewardPoint(eventId, userId, slot.getReward());
+    pointInnerService.sendEventRewardPoint(userId, slot.getReward());
 
     //큐에서 이벤트 참여자 제거
     waitingQueueRepository.delete(head);
