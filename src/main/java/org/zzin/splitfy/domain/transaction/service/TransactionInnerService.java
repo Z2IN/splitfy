@@ -10,4 +10,6 @@ public interface TransactionInnerService {
 
   void createTransferOutTransaction(TransactionInfoDTO param);
 
+  void createRewardTransaction(TransactionInfoDTO param);
+
 }
