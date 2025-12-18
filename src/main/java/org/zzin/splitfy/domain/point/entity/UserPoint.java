@@ -29,6 +29,10 @@ public class UserPoint {
 
   @NullMarked
   public void addPoint(long amount) {
+    if (amount <= 0) {
+      throw new BusinessException(PointErrorCode.INVALID_POINT_AMOUNT);
+    }
+
     try {
       this.point = Math.addExact(this.point, amount);
     } catch (ArithmeticException e) {
@@ -38,6 +42,10 @@ public class UserPoint {
 
   @NullMarked
   public void deductPoint(long amount) {
+    if (amount <= 0) {
+      throw new BusinessException(PointErrorCode.INVALID_POINT_AMOUNT);
+    }
+
     try {
       this.point = Math.subtractExact(this.point, amount);
     } catch (ArithmeticException e) {
