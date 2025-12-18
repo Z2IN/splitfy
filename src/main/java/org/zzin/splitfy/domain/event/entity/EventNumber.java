@@ -2,6 +2,7 @@ package org.zzin.splitfy.domain.event.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -9,9 +10,11 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "event_numbers")
 public class EventNumber {
@@ -31,4 +34,8 @@ public class EventNumber {
 
   @Column(nullable = false)
   private boolean selected;
+
+  public void select() {
+    this.selected = true;
+  }
 }
