@@ -29,23 +29,19 @@ public class UserPoint {
 
   @NullMarked
   public void addPoint(long amount) {
-    if (amount < 0) {
+    try {
+      this.point = Math.addExact(this.point, amount);
+    } catch (ArithmeticException e) {
       throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
     }
-    if (Long.MAX_VALUE - this.point < amount) {
-      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
-    }
-    this.point += amount;
   }
 
   @NullMarked
   public void deductPoint(long amount) {
-    if (amount < 0) {
+    try {
+      this.point = Math.subtractExact(this.point, amount);
+    } catch (ArithmeticException e) {
       throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
     }
-    if (this.point < amount) {
-      throw new BusinessException(PointErrorCode.INSUFFICIENT_POINT_BALANCE);
-    }
-    this.point -= amount;
   }
 }
