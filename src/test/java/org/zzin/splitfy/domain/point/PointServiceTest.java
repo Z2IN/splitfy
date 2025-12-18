@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +48,7 @@ class PointServiceTest {
     UserPoint userPoint = new UserPoint(userId);
     userPoint.addPoint(beforePoint);
 
-    given(userPointRepository.findByUserId(userId)).willReturn(java.util.Optional.of(userPoint));
+    given(userPointRepository.findByUserId(userId)).willReturn(Optional.of(userPoint));
 
     DepositResponse response = pointService.deposit(new AuthUser(userId), amount);
 
@@ -82,10 +84,9 @@ class PointServiceTest {
     UserPoint sender = new UserPoint(meId);
     sender.addPoint(myBefore);
     UserPoint receiver = new UserPoint(toUserId);
-    receiver.addPoint(otherBefore);
 
-    given(userPointRepository.findByUserId(meId)).willReturn(java.util.Optional.of(sender));
-    given(userPointRepository.findByUserId(toUserId)).willReturn(java.util.Optional.of(receiver));
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
 
     TransferResponse response = pointService.transferTo(toUserId, amount, new AuthUser(meId));
 
@@ -126,14 +127,22 @@ class PointServiceTest {
     long toUserId = 2L;
     long amount = 0L;
 
+    UserPoint sender = new UserPoint(meId);
+    sender.addPoint(100L);
+    UserPoint receiver = new UserPoint(toUserId);
+
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
+
     BusinessException ex = assertThrows(BusinessException.class,
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
     assertThat(ex.getErrorCode()).isEqualTo(
-        PointErrorCode.INVALID_POINT_BALANCE);
+        PointErrorCode.INVALID_POINT_AMOUNT);
 
-    org.mockito.Mockito.verifyNoInteractions(userPointRepository);
-    org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
+    then(userPointRepository).should().findByUserId(meId);
+    then(userPointRepository).should().findByUserId(toUserId);
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -148,8 +157,8 @@ class PointServiceTest {
     assertThat(ex.getErrorCode()).isEqualTo(
         PointErrorCode.CANNOT_TRANSFER_TO_SELF);
 
-    org.mockito.Mockito.verifyNoInteractions(userPointRepository);
-    org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
+    then(userPointRepository).shouldHaveNoInteractions();
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -158,7 +167,7 @@ class PointServiceTest {
     long toUserId = 2L;
     long amount = 10L;
 
-    given(userPointRepository.findByUserId(meId)).willReturn(java.util.Optional.empty());
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.empty());
 
     BusinessException ex = assertThrows(BusinessException.class,
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
@@ -167,7 +176,7 @@ class PointServiceTest {
         PointErrorCode.USER_NOT_FOUND);
 
     then(userPointRepository).should().findByUserId(meId);
-    org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -179,8 +188,8 @@ class PointServiceTest {
     UserPoint sender = new UserPoint(meId);
     sender.addPoint(100L);
 
-    given(userPointRepository.findByUserId(meId)).willReturn(java.util.Optional.of(sender));
-    given(userPointRepository.findByUserId(toUserId)).willReturn(java.util.Optional.empty());
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.empty());
 
     BusinessException ex = assertThrows(BusinessException.class,
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
@@ -190,7 +199,7 @@ class PointServiceTest {
 
     then(userPointRepository).should().findByUserId(meId);
     then(userPointRepository).should().findByUserId(toUserId);
-    org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -200,21 +209,18 @@ class PointServiceTest {
     long amount = 100L;
 
     UserPoint sender = new UserPoint(meId);
-    sender.addPoint(10L);
     UserPoint receiver = new UserPoint(toUserId);
-    receiver.addPoint(0L);
 
-    given(userPointRepository.findByUserId(meId)).willReturn(java.util.Optional.of(sender));
-    given(userPointRepository.findByUserId(toUserId)).willReturn(java.util.Optional.of(receiver));
+    given(userPointRepository.findByUserId(meId)).willReturn(Optional.of(sender));
+    given(userPointRepository.findByUserId(toUserId)).willReturn(Optional.of(receiver));
 
     BusinessException ex = assertThrows(BusinessException.class,
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
-    assertThat(ex.getErrorCode()).isEqualTo(
-        org.zzin.splitfy.domain.point.exception.PointErrorCode.INSUFFICIENT_POINT_BALANCE);
+    assertThat(ex.getErrorCode()).isEqualTo(PointErrorCode.INSUFFICIENT_POINT_BALANCE);
 
     then(userPointRepository).should().findByUserId(meId);
     then(userPointRepository).should().findByUserId(toUserId);
-    org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
+    then(transactionInnerService).shouldHaveNoInteractions();
   }
 }

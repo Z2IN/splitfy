@@ -46,6 +46,10 @@ public class UserPoint {
       throw new BusinessException(PointErrorCode.INVALID_POINT_AMOUNT);
     }
 
+    if (this.point < amount) {
+      throw new BusinessException(PointErrorCode.INSUFFICIENT_POINT_BALANCE);
+    }
+
     try {
       this.point = Math.subtractExact(this.point, amount);
     } catch (ArithmeticException e) {

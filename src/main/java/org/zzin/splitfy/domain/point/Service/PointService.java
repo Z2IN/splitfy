@@ -117,11 +117,6 @@ public class PointService {
   }
 
   private PointTransferSummaryDTO transferPoint(long senderId, long receiverId, long amount) {
-    // 송금액 검증
-    if (amount <= 0) {
-      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
-    }
-
     // 본인에게 송금 불가
     if (senderId == receiverId) {
       throw new BusinessException(PointErrorCode.CANNOT_TRANSFER_TO_SELF);
