@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.point.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
@@ -119,19 +118,19 @@ public class PointService {
   private PointTransferSummaryDTO transferPoint(long senderId, long receiverId, long amount) {
     // 송금액 검증
     if (amount <= 0) {
-      throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);
+      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
     }
 
     // 본인에게 송금 불가
     if (senderId == receiverId) {
-      throw new BusinessException(AuthErrorCode.CANNOT_TRANSFER_TO_SELF);
+      throw new BusinessException(PointErrorCode.CANNOT_TRANSFER_TO_SELF);
     }
 
     // 송신자와 수신자 조회
     UserPoint senderPoint = userPointRepository.findByUserId(senderId)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
     UserPoint receiverPoint = userPointRepository.findByUserId(receiverId)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
 
     // 이전 포인트 저장
     long senderBeforePoint = senderPoint.getPoint();

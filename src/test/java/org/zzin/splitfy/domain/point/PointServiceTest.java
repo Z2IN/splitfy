@@ -17,6 +17,7 @@ import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
 import org.zzin.splitfy.domain.point.entity.UserPoint;
+import org.zzin.splitfy.domain.point.exception.PointErrorCode;
 import org.zzin.splitfy.domain.point.repository.UserPointRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
@@ -129,7 +130,7 @@ class PointServiceTest {
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
     assertThat(ex.getErrorCode()).isEqualTo(
-        org.zzin.splitfy.domain.auth.exception.AuthErrorCode.INVALID_POINT_BALANCE);
+        PointErrorCode.INVALID_POINT_BALANCE);
 
     org.mockito.Mockito.verifyNoInteractions(userPointRepository);
     org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
@@ -145,7 +146,7 @@ class PointServiceTest {
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
     assertThat(ex.getErrorCode()).isEqualTo(
-        org.zzin.splitfy.domain.auth.exception.AuthErrorCode.CANNOT_TRANSFER_TO_SELF);
+        PointErrorCode.CANNOT_TRANSFER_TO_SELF);
 
     org.mockito.Mockito.verifyNoInteractions(userPointRepository);
     org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
@@ -163,7 +164,7 @@ class PointServiceTest {
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
     assertThat(ex.getErrorCode()).isEqualTo(
-        org.zzin.splitfy.domain.auth.exception.AuthErrorCode.USER_NOT_FOUND);
+        PointErrorCode.USER_NOT_FOUND);
 
     then(userPointRepository).should().findByUserId(meId);
     org.mockito.Mockito.verifyNoInteractions(transactionInnerService);
@@ -185,7 +186,7 @@ class PointServiceTest {
         () -> pointService.transferTo(toUserId, amount, new AuthUser(meId)));
 
     assertThat(ex.getErrorCode()).isEqualTo(
-        org.zzin.splitfy.domain.auth.exception.AuthErrorCode.USER_NOT_FOUND);
+        PointErrorCode.USER_NOT_FOUND);
 
     then(userPointRepository).should().findByUserId(meId);
     then(userPointRepository).should().findByUserId(toUserId);
