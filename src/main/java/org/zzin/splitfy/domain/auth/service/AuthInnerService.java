@@ -8,8 +8,6 @@ import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 @NullMarked
 public interface AuthInnerService {
 
-  long getPointBy(long userId);
-
   @NonNull
   PointChangeResultDTO addPoint(long userId, long amount);
 

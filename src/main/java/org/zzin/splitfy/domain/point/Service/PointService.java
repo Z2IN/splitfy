@@ -5,12 +5,16 @@ import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
+import org.zzin.splitfy.domain.point.entity.UserPoint;
+import org.zzin.splitfy.domain.point.exception.PointErrorCode;
+import org.zzin.splitfy.domain.point.repository.UserPointRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
@@ -23,6 +27,7 @@ public class PointService {
 
   private final AuthInnerService authInnerService;
   private final TransactionInnerService transactionInnerService;
+  private final UserPointRepository userPointRepository;
 
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
@@ -31,7 +36,9 @@ public class PointService {
    * @return 요청한 사용자의 현재 포인트 잔액
    */
   public long getPointBy(AuthUser authUser) {
-    return authInnerService.getPointBy(authUser.userId());
+    UserPoint userPoint = userPointRepository.findByUserId(authUser.userId())
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+    return userPoint.getPoint();
   }
 
   /**
