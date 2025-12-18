@@ -30,6 +30,4 @@ public class SettlementController {
     SettlementResponse response = settlementService.createSettlement(authUser, request);
     return CommonResponse.success(response);
   }
-
 }
-

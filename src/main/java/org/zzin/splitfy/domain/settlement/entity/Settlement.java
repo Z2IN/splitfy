@@ -62,4 +62,13 @@ public class Settlement {
   public SettlementParticipant createParticipant(Long userId, long netAmount) {
     return new SettlementParticipant(this.id, userId, netAmount);
   }
+
+  public void markAsSucceeded() {
+    this.status = SettlementStatus.SUCCEEDED;
+    this.succeededAt = LocalDateTime.now();
+  }
+
+  public void markAsFailed() {
+    this.status = SettlementStatus.FAILED;
+  }
 }
