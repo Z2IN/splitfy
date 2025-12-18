@@ -59,6 +59,7 @@ public class User {
     this.point += amount;
   }
 
+  @Deprecated
   public void deductPoint(long amount) {
     if (amount < 0) {
       throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);

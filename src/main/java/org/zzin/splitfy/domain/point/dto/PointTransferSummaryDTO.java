@@ -1,4 +1,4 @@
-package org.zzin.splitfy.domain.auth.dto;
+package org.zzin.splitfy.domain.point.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

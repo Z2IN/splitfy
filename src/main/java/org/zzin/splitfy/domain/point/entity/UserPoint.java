@@ -37,4 +37,15 @@ public class UserPoint {
     }
     this.point += amount;
   }
+
+  @NullMarked
+  public void deductPoint(long amount) {
+    if (amount < 0) {
+      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
+    }
+    if (this.point < amount) {
+      throw new BusinessException(PointErrorCode.INSUFFICIENT_POINT_BALANCE);
+    }
+    this.point -= amount;
+  }
 }
