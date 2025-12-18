@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
@@ -53,18 +52,24 @@ public class PointService {
   public DepositResponse deposit(AuthUser authUser, long amount) {
     String transactionUUID = UUID.randomUUID().toString();
     long userId = authUser.userId();
-    PointChangeResultDTO pointChangeDetail = authInnerService.addPoint(userId, amount);
+    UserPoint userPoint = userPointRepository.findByUserId(userId)
+        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
+    long beforePoint = userPoint.getPoint();
+
+    userPoint.addPoint(amount);
+
+    long afterPoint = userPoint.getPoint();
     TransactionInfoDTO param = TransactionInfoDTO.builder()
         .transactionUUID(transactionUUID)
         .userId(userId)
         .amount(amount)
-        .beforePoint(pointChangeDetail.getBeforePoint())
-        .afterPoint(pointChangeDetail.getAfterPoint())
+        .beforePoint(beforePoint)
+        .afterPoint(afterPoint)
         .build();
 
     transactionInnerService.createDepositTransaction(param);
 
-    return new DepositResponse(amount, pointChangeDetail.getAfterPoint());
+    return new DepositResponse(amount, afterPoint);
   }
 
   /**

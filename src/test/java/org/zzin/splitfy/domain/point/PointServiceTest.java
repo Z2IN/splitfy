@@ -11,12 +11,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.auth.dto.PointChangeResultDTO;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.auth.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
+import org.zzin.splitfy.domain.point.entity.UserPoint;
+import org.zzin.splitfy.domain.point.repository.UserPointRepository;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 
@@ -29,6 +30,9 @@ class PointServiceTest {
   @Mock
   private TransactionInnerService transactionInnerService;
 
+  @Mock
+  private UserPointRepository userPointRepository;
+
   @InjectMocks
   private PointService pointService;
 
@@ -40,8 +44,11 @@ class PointServiceTest {
     long beforePoint = 100L;
     long afterPoint = 150L;
 
-    given(authInnerService.addPoint(userId, amount))
-        .willReturn(new PointChangeResultDTO(beforePoint, afterPoint));
+    // 기존 포인트를 가진 엔티티 준비
+    UserPoint userPoint = new UserPoint(userId);
+    userPoint.addPoint(beforePoint);
+
+    given(userPointRepository.findByUserId(userId)).willReturn(java.util.Optional.of(userPoint));
 
     DepositResponse response = pointService.deposit(new AuthUser(userId), amount);
 
@@ -49,10 +56,9 @@ class PointServiceTest {
     assertThat(response.amount()).isEqualTo(amount);
     assertThat(response.point()).isEqualTo(afterPoint);
 
-    then(authInnerService).should().addPoint(userId, amount);
+    then(userPointRepository).should().findByUserId(userId);
 
-    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(
-        TransactionInfoDTO.class);
+    ArgumentCaptor<TransactionInfoDTO> captor = ArgumentCaptor.forClass(TransactionInfoDTO.class);
     then(transactionInnerService).should().createDepositTransaction(captor.capture());
 
     TransactionInfoDTO dto = captor.getValue();

@@ -8,22 +8,23 @@ import org.zzin.splitfy.common.exception.ErrorCode;
 @Getter
 @RequiredArgsConstructor
 public enum AuthErrorCode implements ErrorCode {
+
   PASSWORD_ENCODING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "비밀번호 암호화에 실패하였습니다."),
 
   TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),
 
-  INVALID_EMPTY_EMAIL_OR_PASSWORD(HttpStatus.BAD_REQUEST, "이메일과 비밀번호는 공백일 수 없습니다."),
-  INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
-  DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
-  DUPLICATE_USERNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+  INVALID_EMPTY_EMAIL_OR_PASSWORD(HttpStatus.BAD_REQUEST, "이메일과 비밀번호는 공백일 수 없습니다."), INVALID_TOKEN(
+      HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."), DUPLICATE_EMAIL(HttpStatus.CONFLICT,
+          "이미 사용 중인 이메일입니다."), DUPLICATE_USERNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
 
   INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
 
   USER_NOT_FOUND(HttpStatus.UNAUTHORIZED, "사용자 정보를 찾을 수 없습니다."),
 
-  CANNOT_TRANSFER_TO_SELF(HttpStatus.BAD_REQUEST, "본인에게 송금할 수 없습니다."),
-  INSUFFICIENT_POINT_BALANCE(HttpStatus.BAD_REQUEST, "현재 잔액이 부족합니다."),
-  INVALID_POINT_BALANCE(HttpStatus.BAD_REQUEST, "포인트 잔액이 유효 범위를 벗어났습니다.");
+  CANNOT_TRANSFER_TO_SELF(HttpStatus.BAD_REQUEST, "본인에게 송금할 수 없습니다."), INSUFFICIENT_POINT_BALANCE(
+      HttpStatus.BAD_REQUEST, "현재 잔액이 부족합니다."), INVALID_POINT_BALANCE(HttpStatus.BAD_REQUEST,
+          "포인트 잔액이 유효 범위를 벗어났습니다.");
+
   private final HttpStatus status;
   private final String message;
 }

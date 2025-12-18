@@ -47,6 +47,8 @@ public class User {
     return user;
   }
 
+  // TODO 삭제해줘.
+  @Deprecated
   public void addPoint(long amount) {
     if (amount < 0) {
       throw new BusinessException(AuthErrorCode.INVALID_POINT_BALANCE);

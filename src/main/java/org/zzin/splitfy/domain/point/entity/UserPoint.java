@@ -1,5 +1,9 @@
 package org.zzin.splitfy.domain.point.entity;
 
+import org.jspecify.annotations.NullMarked;
+import org.zzin.splitfy.common.exception.BusinessException;
+import org.zzin.splitfy.domain.point.exception.PointErrorCode;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -21,5 +25,16 @@ public class UserPoint {
 
   public UserPoint(long userId) {
     this.userId = userId;
+  }
+
+  @NullMarked
+  public void addPoint(long amount) {
+    if (amount < 0) {
+      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
+    }
+    if (Long.MAX_VALUE - this.point < amount) {
+      throw new BusinessException(PointErrorCode.INVALID_POINT_BALANCE);
+    }
+    this.point += amount;
   }
 }
