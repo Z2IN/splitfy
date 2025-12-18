@@ -22,6 +22,7 @@ import org.zzin.splitfy.domain.auth.entity.User;
 import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
 import org.zzin.splitfy.domain.auth.service.AuthService;
+import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceTest {
@@ -31,6 +32,9 @@ public class AuthServiceTest {
 
   @Mock
   private PasswordEncoder passwordEncoder;
+
+  @Mock
+  private PointInnerService pointInnerService;
 
   @InjectMocks
   private AuthService authService;
@@ -50,6 +54,8 @@ public class AuthServiceTest {
     User savedUser = User.ofSignup(request.email(), request.username(), "encodedPw");
     ReflectionTestUtils.setField(savedUser, "id", 1L);
     given(authRepository.save(any(User.class))).willReturn(savedUser);
+
+    given(pointInnerService.initUserPoint(savedUser.getId())).willReturn(0L);
 
     SignupResponse response = authService.signup(request);
 
