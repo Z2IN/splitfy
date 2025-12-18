@@ -37,6 +37,7 @@ import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
 import org.zzin.splitfy.domain.event.service.EventService;
+import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @ExtendWith(MockitoExtension.class)
 public class EventServiceTest {
@@ -55,6 +56,9 @@ public class EventServiceTest {
 
   @Mock
   private EventQueryRepository eventQueryRepository;
+
+  @Mock
+  private PointInnerService pointInnerService;
 
   @InjectMocks
   private EventService eventService;
