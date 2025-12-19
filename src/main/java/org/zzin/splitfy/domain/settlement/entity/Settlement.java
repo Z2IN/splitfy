@@ -26,10 +26,13 @@ public class Settlement {
   private Long id;
 
   @Column(nullable = false)
-  private Long issuerId;
+  private long issuerId;
 
   @Column(nullable = false)
-  private Long totalAmount;
+  private long totalAmount;
+
+  @Column(nullable = false)
+  private long remainder = 0L;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -41,4 +44,31 @@ public class Settlement {
 
   @Column
   private LocalDateTime succeededAt;
+
+  public Settlement(long issuerId, long totalAmount, long remainder) {
+    this.issuerId = issuerId;
+    this.totalAmount = totalAmount;
+    this.remainder = remainder;
+    this.status = SettlementStatus.PENDING;
+    this.issuedAt = LocalDateTime.now();
+  }
+
+  public Payment createPayment(long paidAmount, long payerId, String title) {
+    Payment payment = new Payment(paidAmount, payerId, paidAmount, title);
+    payment.setSettlementId(this.id);
+    return payment;
+  }
+
+  public SettlementParticipant createParticipant(long userId, long netAmount) {
+    return new SettlementParticipant(this.id, userId, netAmount);
+  }
+
+  public void markAsSucceeded() {
+    this.status = SettlementStatus.SUCCEEDED;
+    this.succeededAt = LocalDateTime.now();
+  }
+
+  public void markAsFailed() {
+    this.status = SettlementStatus.FAILED;
+  }
 }

@@ -1,7 +1,6 @@
 package org.zzin.splitfy.common.config;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +17,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.zzin.splitfy.common.security.jwt.JwtAuthenticationFilter;
 import org.zzin.splitfy.common.security.jwt.JwtProperties;
+
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity

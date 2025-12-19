@@ -73,8 +73,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private String resolveToken(HttpServletRequest req) {
     String h = req.getHeader("Authorization");
 
-    if (h != null && h.startsWith("Bearer ")) {
-      return h.substring(7);
+    if (h != null && !h.isBlank()) {
+      return h.startsWith("Bearer ") ? h.substring(7) : h;
     }
     return null;
   }
