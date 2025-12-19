@@ -6,18 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.zzin.splitfy.domain.point.Service.PointInnerService;
-import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
-import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
-import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
 @Service
 @RequiredArgsConstructor
 @NullMarked
 public class SettlementTransferService {
 
-  private final SettlementRepository settlementRepository;
-  private final PaymentRepository paymentRepository;
-  private final SettlementParticipantRepository settlementParticipantRepository;
   private final PointInnerService pointInnerService;
 
   /**
@@ -68,5 +62,4 @@ public class SettlementTransferService {
       }
     }
   }
-
 }
