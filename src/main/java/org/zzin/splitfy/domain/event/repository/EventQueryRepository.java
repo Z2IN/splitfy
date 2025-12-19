@@ -4,6 +4,7 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +13,11 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
 import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
+import org.zzin.splitfy.domain.event.entity.EventNumber;
 import org.zzin.splitfy.domain.event.entity.QEvent;
+import org.zzin.splitfy.domain.event.entity.QEventNumber;
 import org.zzin.splitfy.domain.event.entity.QWaitingQueue;
+import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
 
 @Repository
@@ -77,6 +81,28 @@ public class EventQueryRepository {
         .when(event.status.in(EventStatus.SCHEDULED, EventStatus.OPENED)).then(0)
         .when(event.status.eq(EventStatus.CLOSED)).then(1)
         .otherwise(2);
+  }
+
+
+  public @Nullable WaitingQueue findHeadForUpdate(long eventId) {
+    QWaitingQueue q = QWaitingQueue.waitingQueue;
+
+    return queryFactory
+        .selectFrom(q)
+        .where(q.eventId.eq(eventId))
+        .orderBy(q.joinAt.asc(), q.id.asc())
+        .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+        .fetchFirst();
+  }
+
+  public @Nullable EventNumber findEventNumberForUpdate(long eventId, int number) {
+    QEventNumber q = QEventNumber.eventNumber;
+
+    return queryFactory
+        .selectFrom(q)
+        .where(q.eventId.eq(eventId), q.number.eq(number))
+        .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+        .fetchOne();
   }
 
 }

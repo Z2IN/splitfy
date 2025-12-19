@@ -3,6 +3,7 @@ package org.zzin.splitfy.domain.event;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -19,10 +20,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
+import org.zzin.splitfy.domain.event.entity.EventEntry;
+import org.zzin.splitfy.domain.event.entity.EventNumber;
 import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
@@ -32,6 +37,7 @@ import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
 import org.zzin.splitfy.domain.event.service.EventService;
+import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @ExtendWith(MockitoExtension.class)
 public class EventServiceTest {
@@ -50,6 +56,9 @@ public class EventServiceTest {
 
   @Mock
   private EventQueryRepository eventQueryRepository;
+
+  @Mock
+  private PointInnerService pointInnerService;
 
   @InjectMocks
   private EventService eventService;
@@ -306,6 +315,220 @@ public class EventServiceTest {
             EventErrorCode.NOT_IN_QUEUE.getMessage());
   }
 
+  @Test
+  void selectEventNumber_정상적으로_번호_선택_성공() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 7;
+    long reward = 1000L;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue headQueue = mock(WaitingQueue.class);
+    given(headQueue.getUserId()).willReturn(userId);
+
+    EventNumber eventNumber = createEventNumber(eventId, selectedNumber, reward, false);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHeadForUpdate(eventId)).willReturn(headQueue);
+    given(eventQueryRepository.findEventNumberForUpdate(eventId, selectedNumber)).willReturn(
+        eventNumber);
+
+    // when
+    EventRewardResponse response = eventService.selectEventNumber(request, eventId,
+        new AuthUser(userId));
+
+    // then
+    assertThat(response.number()).isEqualTo(selectedNumber);
+    assertThat(response.reward()).isEqualTo(reward);
+    assertThat(eventNumber.isSelected()).isTrue(); // select() 호출 후 상태 확인
+    then(eventEntryRepository).should(times(1)).save(any(EventEntry.class));
+    then(waitingQueueRepository).should(times(1)).delete(headQueue);
+  }
+
+  @Test
+  void selectEventNumber_이벤트_존재하지않으면_예외발생() {
+    // given
+    Long eventId = 999L;
+    long userId = 100L;
+    int selectedNumber = 7;
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
+
+    then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
+  }
+
+  @Test
+  void selectEventNumber_이벤트_시작전이면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 7;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event futureEvent = createEventWithTime("미래 이벤트", now.plusDays(1), now.plusDays(2),
+        EventStatus.OPENED, 100L);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(futureEvent));
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
+
+    then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
+  }
+
+  @Test
+  void selectEventNumber_이벤트_종료후면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 7;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event endedEvent = createEventWithTime("종료된 이벤트", now.minusDays(2), now.minusDays(1),
+        EventStatus.CLOSED, 100L);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(endedEvent));
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
+
+    then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
+  }
+
+  @Test
+  void selectEventNumber_내_차례가_아니면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    long headUserId = 200L; // 다른 사용자가 1순위
+    int selectedNumber = 7;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue headQueue = mock(WaitingQueue.class);
+    given(headQueue.getUserId()).willReturn(headUserId);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHeadForUpdate(eventId)).willReturn(headQueue);
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+
+    then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
+  }
+
+  @Test
+  void selectEventNumber_대기열이_비어있으면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 7;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHeadForUpdate(eventId)).willReturn(null); // 대기열 비어있음
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+
+    then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
+  }
+
+  @Test
+  void selectEventNumber_번호가_존재하지않으면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 999; // 존재하지 않는 번호
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue headQueue = mock(WaitingQueue.class);
+    given(headQueue.getUserId()).willReturn(userId);
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHeadForUpdate(eventId)).willReturn(headQueue);
+    given(eventQueryRepository.findEventNumberForUpdate(eventId, selectedNumber)).willReturn(
+        null); // 번호 없음
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
+
+    then(eventEntryRepository).should(never()).save(any());
+  }
+
+  @Test
+  void selectEventNumber_이미_선택된_번호면_예외발생() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    int selectedNumber = 7;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue headQueue = mock(WaitingQueue.class);
+    given(headQueue.getUserId()).willReturn(userId);
+
+    EventNumber eventNumber = createEventNumber(eventId, selectedNumber, 1000L,
+        true); // 이미 선택됨
+
+    SelectEventNumberRequest request = new SelectEventNumberRequest(selectedNumber);
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHeadForUpdate(eventId)).willReturn(headQueue);
+    given(eventQueryRepository.findEventNumberForUpdate(eventId, selectedNumber)).willReturn(
+        eventNumber);
+
+    // when & then
+    assertThatThrownBy(
+        () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
+
+    then(eventEntryRepository).should(never()).save(any());
+  }
+
   //====================== 편의 메서드 ============================
 
   private Event createEventWithTime(String title, LocalDateTime startAt, LocalDateTime endAt,
@@ -357,5 +580,34 @@ public class EventServiceTest {
     }
 
     return queue;
+  }
+
+  private EventNumber createEventNumber(Long eventId, int number, long reward,
+      boolean selected) {
+    try {
+      var constructor = EventNumber.class.getDeclaredConstructor();
+      constructor.setAccessible(true);
+      EventNumber eventNumber = constructor.newInstance();
+
+      var eventIdField = EventNumber.class.getDeclaredField("eventId");
+      eventIdField.setAccessible(true);
+      eventIdField.set(eventNumber, eventId);
+
+      var numberField = EventNumber.class.getDeclaredField("number");
+      numberField.setAccessible(true);
+      numberField.set(eventNumber, number);
+
+      var rewardField = EventNumber.class.getDeclaredField("reward");
+      rewardField.setAccessible(true);
+      rewardField.set(eventNumber, reward);
+
+      var selectedField = EventNumber.class.getDeclaredField("selected");
+      selectedField.setAccessible(true);
+      selectedField.set(eventNumber, selected);
+
+      return eventNumber;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

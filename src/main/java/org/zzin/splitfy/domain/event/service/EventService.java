@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.event.service;
 
+import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -13,12 +14,16 @@ import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.EventCursor;
 import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
+import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.GetEventsByResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
 import org.zzin.splitfy.domain.event.dto.response.QueuePositionResponse;
 import org.zzin.splitfy.domain.event.entity.Event;
+import org.zzin.splitfy.domain.event.entity.EventEntry;
+import org.zzin.splitfy.domain.event.entity.EventNumber;
 import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
@@ -26,6 +31,7 @@ import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
 import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
+import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @Service
 @NullMarked
@@ -37,6 +43,7 @@ public class EventService {
   private final EventEntryRepository eventEntryRepository;
   private final WaitingQueueRepository waitingQueueRepository;
   private final EventQueryRepository eventQueryRepository;
+  private final PointInnerService pointInnerService;
 
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
@@ -135,5 +142,52 @@ public class EventService {
         .toList();
 
     return CommonCursor.of(response, nextCursor, hasNext);
+  }
+
+  @Transactional
+  public EventRewardResponse selectEventNumber(@Valid SelectEventNumberRequest request,
+      Long eventId, AuthUser authUser) {
+
+    long userId = authUser.userId();
+    int number = request.number();
+    LocalDateTime now = LocalDateTime.now();
+
+    //이벤트 기간 조회
+    Event event = eventRepository.findById(eventId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
+    event.validateEventPeriod(now);
+
+    // 1순위 찾기
+    WaitingQueue head = eventQueryRepository.findHeadForUpdate(eventId);
+    if (head == null || head.getUserId() != userId) {
+      throw new BusinessException(EventErrorCode.NOT_YOUR_TURN);
+    }
+
+    //이벤트 번호 뽑기 + 상태 변경
+    EventNumber slot = eventQueryRepository.findEventNumberForUpdate(eventId, number);
+    if (slot == null) {
+      throw new BusinessException(EventErrorCode.NUMBER_NOT_FOUND);
+    }
+    if (slot.isSelected()) {
+      throw new BusinessException(EventErrorCode.NUMBER_ALREADY_TAKEN);
+    }
+    slot.select();
+
+    //이벤트 참여 내역 저장
+    eventEntryRepository.save(
+        EventEntry.builder()
+            .eventId(eventId)
+            .userId(userId)
+            .reward(slot.getReward())
+            .build()
+    );
+
+    //리워드 포인트 지급
+    pointInnerService.sendEventRewardPoint(userId, slot.getReward());
+
+    //큐에서 이벤트 참여자 제거
+    waitingQueueRepository.delete(head);
+
+    return new EventRewardResponse(slot.getNumber(), slot.getReward());
   }
 }
