@@ -5,6 +5,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.domain.point.Service.PointInnerService;
 
 @Service
@@ -19,6 +21,7 @@ public class SettlementTransferService {
    *
    * @param netBalance 사용자별 정산 금액 (양수: 받을 금액, 음수: 줘야 할 금액)
    */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void executeTransfers(Map<Long, Long> netBalance) {
     Map<Long, Long> creditors = new HashMap<>();  // 결제한 사람 (양수)
     Map<Long, Long> debtors = new HashMap<>();    // 이체할 사람 (음수)

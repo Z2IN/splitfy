@@ -8,7 +8,6 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
@@ -25,7 +24,6 @@ public class SettlementService {
   private final SettlementStatusService settlementStatusService;
   private final SettlementRecordService settlementRecordService;
 
-  @Transactional
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
     List<PaymentRequest> paymentRequests = request.payments();
