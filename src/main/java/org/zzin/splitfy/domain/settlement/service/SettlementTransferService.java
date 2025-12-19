@@ -20,7 +20,6 @@ public class SettlementTransferService {
   private final SettlementParticipantRepository settlementParticipantRepository;
   private final PointInnerService pointInnerService;
 
-
   /**
    * netBalance를 기반으로 실제 이체를 수행하는 메서드
    *
