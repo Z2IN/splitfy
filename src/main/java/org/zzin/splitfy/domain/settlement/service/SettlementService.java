@@ -11,27 +11,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.dto.request.SettlementRequest;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementResponse;
-import org.zzin.splitfy.domain.settlement.entity.Payment;
-import org.zzin.splitfy.domain.settlement.entity.Settlement;
-import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
 import org.zzin.splitfy.domain.settlement.exception.SettlementErrorCode;
-import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
-import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
-import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
 @Service
 @RequiredArgsConstructor
 @NullMarked
 public class SettlementService {
 
-  private final SettlementRepository settlementRepository;
-  private final PaymentRepository paymentRepository;
-  private final SettlementParticipantRepository settlementParticipantRepository;
-  private final PointService pointService;
+  private final SettlementTransferService settlementTransferService;
+  private final SettlementStatusService settlementStatusService;
+  private final SettlementRecordService settlementRecordService;
 
   @Transactional
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
@@ -69,41 +61,24 @@ public class SettlementService {
     // totalAmount 계산
     long totalAmount = allocated.values().stream().mapToLong(Long::longValue).sum();
 
-    // Settlement 생성 및 저장
-    Settlement settlement = new Settlement(issuerId, totalAmount, totalRemainder);
-    settlement = settlementRepository.save(settlement);
-
-    // Payment 엔티티 생성 및 저장
-    for (PaymentRequest paymentRequest : paymentRequests) {
-      Payment payment = settlement.createPayment(
-          paymentRequest.paidAmount(),
-          paymentRequest.payerId(),
-          paymentRequest.title()
-      );
-      paymentRepository.save(payment);
-    }
-
     // 최소 정산 알고리즘: 사용자별 정산 금액 계산
     Map<Long, Long> netBalance = calculateNetBalance(contributed, allocated);
 
-    // SettlementParticipant 저장 (각 사용자의 정산 금액)
-    for (Map.Entry<Long, Long> entry : netBalance.entrySet()) {
-      SettlementParticipant participant = settlement.createParticipant(
-          entry.getKey(),
-          entry.getValue()
-      );
-      settlementParticipantRepository.save(participant);
-    }
+    // 1. 정산 요청에 대한 settlement, payment 요청 기록 (첫 번째 트랜잭션)
+    Long settlementId = settlementRecordService.createSettlementRecord(issuerId, totalAmount,
+        totalRemainder, paymentRequests, netBalance);
 
-    // 자동 이체 실행 및 상태 업데이트
+    // 2. 이체 실행 (두 번째 트랜잭션)
     try {
-      executeTransfers(netBalance);
-      settlement.markAsSucceeded();
+      settlementTransferService.executeTransfers(netBalance);
+      // 3. 이체 성공 시 settlement state 변경 (세 번째 트랜잭션)
+      settlementStatusService.updateSettlementStatus(settlementId, true);
     } catch (Exception e) {
-      settlement.markAsFailed();
+      // 3. 이체 실패 시 settlement state 변경 (세 번째 트랜잭션)
+      settlementStatusService.updateSettlementStatus(settlementId, false);
     }
 
-    return new SettlementResponse(settlement.getId());
+    return new SettlementResponse(settlementId);
   }
 
   /**
@@ -148,57 +123,6 @@ public class SettlementService {
       Set<Long> uniqueIds = new HashSet<>(allocationIds);
       if (uniqueIds.size() != allocationIds.size()) {
         throw new BusinessException(SettlementErrorCode.DUPLICATE_ALLOCATION_TARGETS);
-      }
-    }
-  }
-
-  /**
-   * netBalance를 기반으로 실제 이체를 수행하는 메서드
-   *
-   * @param netBalance 사용자별 정산 금액 (양수: 받을 금액, 음수: 줘야 할 금액)
-   */
-  private void executeTransfers(Map<Long, Long> netBalance) {
-    Map<Long, Long> creditors = new HashMap<>();  // 결제한 사람 (양수)
-    Map<Long, Long> debtors = new HashMap<>();    // 이체할 사람 (음수)
-
-    for (Map.Entry<Long, Long> entry : netBalance.entrySet()) {
-      long userId = entry.getKey();
-      long balance = entry.getValue();
-
-      if (balance > 0) {
-        creditors.put(userId, balance);
-      } else if (balance < 0) {
-        debtors.put(userId, -balance); // 절댓값으로 저장
-      }
-    }
-
-    // 이체
-    for (Map.Entry<Long, Long> debtorEntry : debtors.entrySet()) {
-      long debtorId = debtorEntry.getKey();
-      long remainingDebt = debtorEntry.getValue();
-
-      for (Map.Entry<Long, Long> creditorEntry : creditors.entrySet()) {
-        if (remainingDebt <= 0) {
-          break;
-        }
-
-        long creditorId = creditorEntry.getKey();
-        long remainingCredit = creditorEntry.getValue();
-
-        if (remainingCredit <= 0) {
-          continue;
-        }
-
-        // 이체할 금액 계산
-        long transferAmount = Math.min(remainingDebt, remainingCredit);
-
-        // 실제 이체 실행: debtorId가 creditorId에게 transferAmount만큼 이체
-        AuthUser debtorAuthUser = new AuthUser(debtorId);
-        pointService.transferTo(creditorId, transferAmount, debtorAuthUser);
-
-        // 잔액 업데이트
-        remainingDebt -= transferAmount;
-        creditorEntry.setValue(remainingCredit - transferAmount);
       }
     }
   }
