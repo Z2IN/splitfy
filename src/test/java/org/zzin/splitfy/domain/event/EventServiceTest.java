@@ -37,7 +37,7 @@ import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
 import org.zzin.splitfy.domain.event.service.EventService;
-import org.zzin.splitfy.domain.point.Service.PointInnerService;
+import org.zzin.splitfy.domain.point.service.PointInnerService;
 
 @ExtendWith(MockitoExtension.class)
 public class EventServiceTest {
@@ -123,7 +123,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-        0L);
+            0L);
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -153,7 +153,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-        4L); // 앞에 4명
+            4L); // 앞에 4명
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -260,7 +260,6 @@ public class EventServiceTest {
     then(waitingQueueRepository).should(never()).save(any(WaitingQueue.class));
   }
 
-
   @Test
   void getQueuePosition_대기열_존재하면_내_앞사람_수_반환() {
     // given
@@ -364,8 +363,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -387,8 +386,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -410,8 +409,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -438,8 +437,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -462,8 +461,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -491,8 +490,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }
@@ -523,8 +522,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }

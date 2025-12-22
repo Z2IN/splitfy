@@ -1,6 +1,5 @@
 package org.zzin.splitfy.domain.settlement;
 
-
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.times;
 
@@ -10,7 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.zzin.splitfy.domain.point.Service.PointInnerService;
+import org.zzin.splitfy.domain.point.service.PointInnerService;
 import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;

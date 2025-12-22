@@ -7,7 +7,7 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.zzin.splitfy.domain.point.Service.PointInnerService;
+import org.zzin.splitfy.domain.point.service.PointInnerService;
 
 @Service
 @RequiredArgsConstructor

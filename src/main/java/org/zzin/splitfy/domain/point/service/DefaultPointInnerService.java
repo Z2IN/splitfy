@@ -1,4 +1,4 @@
-package org.zzin.splitfy.domain.point.Service;
+package org.zzin.splitfy.domain.point.service;
 
 import java.util.UUID;
 

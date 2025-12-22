@@ -15,12 +15,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
 import org.zzin.splitfy.domain.point.entity.UserPoint;
 import org.zzin.splitfy.domain.point.exception.PointErrorCode;
 import org.zzin.splitfy.domain.point.repository.UserPointRepository;
+import org.zzin.splitfy.domain.point.service.PointService;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
 import org.zzin.splitfy.domain.transaction.service.TransactionInnerService;
 

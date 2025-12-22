@@ -4,11 +4,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.point.Service.PointService;
 import org.zzin.splitfy.domain.point.dto.request.DepositRequest;
 import org.zzin.splitfy.domain.point.dto.request.TransferRequest;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
+import org.zzin.splitfy.domain.point.service.PointService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

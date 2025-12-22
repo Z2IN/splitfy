@@ -1,4 +1,4 @@
-package org.zzin.splitfy.domain.point.Service;
+package org.zzin.splitfy.domain.point.service;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -15,6 +15,7 @@ public interface PointInnerService {
    * @param amount     이체할 포인트 양 (양수여야 함)
    */
   void transferPoint(long fromUserId, long toUserId, long amount);
+
   void sendEventRewardPoint(long userId, long reward);
 
 }

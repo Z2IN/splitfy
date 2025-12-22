@@ -15,7 +15,7 @@ import org.zzin.splitfy.domain.auth.dto.response.SignupResponse;
 import org.zzin.splitfy.domain.auth.entity.User;
 import org.zzin.splitfy.domain.auth.exception.AuthErrorCode;
 import org.zzin.splitfy.domain.auth.repository.AuthRepository;
-import org.zzin.splitfy.domain.point.Service.PointInnerService;
+import org.zzin.splitfy.domain.point.service.PointInnerService;
 
 @Service
 @RequiredArgsConstructor

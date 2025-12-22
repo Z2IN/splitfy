@@ -31,7 +31,7 @@ import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
 import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
-import org.zzin.splitfy.domain.point.Service.PointInnerService;
+import org.zzin.splitfy.domain.point.service.PointInnerService;
 
 @Service
 @NullMarked
