@@ -44,4 +44,11 @@ public class WaitingQueue {
     this.userId = userId;
   }
 
+  public void startTurn(LocalDateTime now) {
+    if (this.expireAt != null) {
+      return;
+    }
+    expireAt = now.plusSeconds(30);
+  }
+
 }
