@@ -16,6 +16,8 @@ import org.zzin.splitfy.domain.event.dto.EventSummaryDTO;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberListResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.GetEventsByResponse;
@@ -28,6 +30,7 @@ import org.zzin.splitfy.domain.event.entity.WaitingQueue;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
 import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
+import org.zzin.splitfy.domain.event.repository.EventNumberRepository;
 import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
@@ -44,6 +47,7 @@ public class EventService {
   private final WaitingQueueRepository waitingQueueRepository;
   private final EventQueryRepository eventQueryRepository;
   private final PointInnerService pointInnerService;
+  private final EventNumberRepository eventNumberRepository;
 
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
@@ -63,6 +67,31 @@ public class EventService {
         .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
 
     return eventMapper.toResponse(event);
+  }
+
+  @Transactional(readOnly = true)
+  public EventNumberListResponse getEventNumbers(Long eventId, AuthUser authUser) {
+    long userId = authUser.userId();
+
+    Event event = eventRepository.findById(eventId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
+
+    //이벤트 기간 검증
+    event.validateEventPeriod(LocalDateTime.now());
+
+    // 1순위 검증
+    WaitingQueue head = eventQueryRepository.findHead(eventId);
+    if (head == null || head.getUserId() != userId) {
+      throw new BusinessException(EventErrorCode.NOT_YOUR_TURN);
+    }
+
+    List<EventNumber> eventNumbers = eventNumberRepository.findByEventIdOrderByNumberAsc(eventId);
+
+    List<EventNumberResponse> items = eventNumbers.stream()
+        .map(eventMapper::toResponse)
+        .toList();
+
+    return new EventNumberListResponse(eventId, items);
   }
 
   /**

@@ -81,6 +81,15 @@ public class EventQueryRepository {
         .otherwise(2);
   }
 
+  //조회용 락 없는 1순위 찾기
+  public @Nullable WaitingQueue findHead(long eventId) {
+    return queryFactory
+        .selectFrom(waitingQueue)
+        .where(waitingQueue.eventId.eq(eventId))
+        .orderBy(waitingQueue.joinAt.asc(), waitingQueue.id.asc())
+        .fetchFirst();
+  }
+
   //이벤트 1순위 찾기
   public @Nullable WaitingQueue findHeadForUpdate(long eventId) {
     return queryFactory
