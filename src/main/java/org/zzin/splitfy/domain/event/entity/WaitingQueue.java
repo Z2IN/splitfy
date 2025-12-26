@@ -13,6 +13,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -47,6 +48,7 @@ public class WaitingQueue {
     this.userId = userId;
   }
 
+  @NullMarked
   public void startTurn(LocalDateTime now) {
     if (this.expireAt != null) {
       return;
