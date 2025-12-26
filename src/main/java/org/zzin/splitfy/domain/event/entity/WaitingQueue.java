@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -21,6 +22,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Entity
 @Table(name = "waiting_queues")
 public class WaitingQueue {
+
+  private static final Duration TURN_DURATION = Duration.ofSeconds(30);
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,7 +51,7 @@ public class WaitingQueue {
     if (this.expireAt != null) {
       return;
     }
-    expireAt = now.plusSeconds(30);
+    expireAt = now.plus(TURN_DURATION);
   }
 
 }
