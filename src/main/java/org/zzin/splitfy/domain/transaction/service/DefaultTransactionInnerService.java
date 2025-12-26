@@ -2,6 +2,7 @@ package org.zzin.splitfy.domain.transaction.service;
 
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.transaction.dto.TransactionInfoDTO;
@@ -40,24 +41,25 @@ public class DefaultTransactionInnerService implements TransactionInnerService {
   }
 
   @Override
-  @Transactional
+  @Transactional(propagation = Propagation.MANDATORY)
   public void createDepositTransaction(TransactionInfoDTO param) {
     createTransaction(param, TransactionType.DEPOSIT);
   }
 
   @Override
-  @Transactional
+  @Transactional(propagation = Propagation.MANDATORY)
   public void createTransferInTransaction(TransactionInfoDTO param) {
     createTransaction(param, TransactionType.TRANSFER_IN);
   }
 
   @Override
-  @Transactional
+  @Transactional(propagation = Propagation.MANDATORY)
   public void createTransferOutTransaction(TransactionInfoDTO param) {
     createTransaction(param, TransactionType.TRANSFER_OUT);
   }
 
   @Override
+  @Transactional(propagation = Propagation.MANDATORY)
   public void createRewardTransaction(TransactionInfoDTO param) {
     createTransaction(param, TransactionType.REWARD);
   }
