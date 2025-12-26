@@ -48,13 +48,8 @@ public class EventService {
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
 
-    Event event = Event.builder()
-        .title(request.title())
-        .description(request.description())
-        .totalStock(request.totalStock())
-        .startAt(request.startAt())
-        .endAt(request.endAt())
-        .build();
+    Event event = Event.builder().title(request.title()).description(request.description())
+        .totalStock(request.totalStock()).startAt(request.startAt()).endAt(request.endAt()).build();
 
     Event saved = eventRepository.save(event);
 
@@ -64,59 +59,10 @@ public class EventService {
   @Transactional(readOnly = true)
   public EventResponse getEvent(Long eventId) {
 
-    Event event = eventRepository.findById(eventId).orElseThrow(() -> new BusinessException(
-        EventErrorCode.EVENT_NOT_FOUND));
-
-    return eventMapper.toResponse(event);
-  }
-
-  @Transactional
-  public JoinQueueResponse joinQueue(Long eventId, AuthUser authUser) {
-    long userId = authUser.userId();
-
     Event event = eventRepository.findById(eventId)
         .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
 
-    //이벤트 진행중인지 확인
-    event.validateEventPeriod(LocalDateTime.now());
-
-    // 중복 참여 확인 (이미 번호 선택 성공한 사람)
-    if (eventEntryRepository.existsByEventIdAndUserId(eventId, userId)) {
-      throw new BusinessException(EventErrorCode.ALREADY_PARTICIPATED);
-    }
-
-    // 대기열 중복 확인 (이미 대기열인 사람)
-    if (waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)) {
-      throw new BusinessException(EventErrorCode.ALREADY_IN_QUEUE);
-    }
-
-    WaitingQueue queue = WaitingQueue.builder()
-        .eventId(eventId)
-        .userId(userId)
-        .build();
-
-    WaitingQueue saved = waitingQueueRepository.save(queue);
-
-    // 내 앞순번 계산
-    long position = eventQueryRepository.countAhead(saved.getEventId(), saved.getJoinAt(),
-        saved.getId());
-
-    return new JoinQueueResponse(eventId, position, saved.getJoinAt());
-  }
-
-  @Transactional(readOnly = true)
-  public QueuePositionResponse getQueuePosition(long eventId, AuthUser authUser) {
-    long userId = authUser.userId();
-
-    WaitingQueue queue = waitingQueueRepository
-        .findByEventIdAndUserId(eventId, userId)
-        .orElseThrow(() -> new BusinessException(EventErrorCode.NOT_IN_QUEUE));
-
-    long position = eventQueryRepository.countAhead(
-        queue.getEventId(), queue.getJoinAt(), queue.getId()
-    );
-
-    return new QueuePositionResponse(position);
+    return eventMapper.toResponse(event);
   }
 
   /**
@@ -137,11 +83,54 @@ public class EventService {
           .encode();
     }
 
-    List<GetEventsByResponse> response = events.stream()
-        .map(GetEventsByResponse::fromDto)
-        .toList();
+    List<GetEventsByResponse> response = events.stream().map(GetEventsByResponse::fromDto).toList();
 
     return CommonCursor.of(response, nextCursor, hasNext);
+  }
+
+  @Transactional
+  public JoinQueueResponse joinQueue(Long eventId, AuthUser authUser) {
+    long userId = authUser.userId();
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = eventRepository.findById(eventId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.EVENT_NOT_FOUND));
+
+    //이벤트 진행중인지 확인
+    event.validateEventPeriod(now);
+
+    // 중복 참여 확인 (이미 번호 선택 성공한 사람)
+    if (eventEntryRepository.existsByEventIdAndUserId(eventId, userId)) {
+      throw new BusinessException(EventErrorCode.ALREADY_PARTICIPATED);
+    }
+
+    // 대기열 중복 확인 (이미 대기열인 사람)
+    if (waitingQueueRepository.existsByEventIdAndUserId(eventId, userId)) {
+      throw new BusinessException(EventErrorCode.ALREADY_IN_QUEUE);
+    }
+
+    WaitingQueue queue = WaitingQueue.builder().eventId(eventId).userId(userId).build();
+
+    WaitingQueue saved = waitingQueueRepository.save(queue);
+
+    // 내 앞순번 계산
+    long position = eventQueryRepository.countAhead(saved.getEventId(), saved.getJoinAt(),
+        saved.getId());
+
+    return new JoinQueueResponse(eventId, position, saved.getJoinAt());
+  }
+
+  @Transactional(readOnly = true)
+  public QueuePositionResponse getQueuePosition(long eventId, AuthUser authUser) {
+    long userId = authUser.userId();
+
+    WaitingQueue queue = waitingQueueRepository.findByEventIdAndUserId(eventId, userId)
+        .orElseThrow(() -> new BusinessException(EventErrorCode.NOT_IN_QUEUE));
+
+    long position = eventQueryRepository.countAhead(queue.getEventId(), queue.getJoinAt(),
+        queue.getId());
+
+    return new QueuePositionResponse(position);
   }
 
   @Transactional
@@ -175,12 +164,7 @@ public class EventService {
 
     //이벤트 참여 내역 저장
     eventEntryRepository.save(
-        EventEntry.builder()
-            .eventId(eventId)
-            .userId(userId)
-            .reward(slot.getReward())
-            .build()
-    );
+        EventEntry.builder().eventId(eventId).userId(userId).reward(slot.getReward()).build());
 
     //리워드 포인트 지급
     pointInnerService.sendEventRewardPoint(userId, slot.getReward());
@@ -188,6 +172,38 @@ public class EventService {
     //큐에서 이벤트 참여자 제거
     waitingQueueRepository.delete(head);
 
+    //다음 이벤트 참가자 확인 후 활성화
+    WaitingQueue nextHead = eventQueryRepository.findNextHeadForUpdate(eventId, head.getJoinAt(),
+        head.getId());
+    if (nextHead != null) {
+      nextHead.startTurn(now);
+      waitingQueueRepository.save(nextHead);
+    }
+
     return new EventRewardResponse(slot.getNumber(), slot.getReward());
+  }
+
+  @Transactional
+  public void processScheduledEventQueue(LocalDateTime now) {
+
+    // 1. 만료된 대기열 정리
+    eventQueryRepository.deleteExpiredQueues(now);
+
+    // 2. 진행중인 이벤트 확인
+    Long eventId = eventQueryRepository.findOpenedEventId(now);
+    if (eventId == null) {
+      return;
+    }
+
+    // 3. 이벤트에 이미 턴 보유자 있으면 종료
+    if (eventQueryRepository.existsActiveTurn(eventId, now)) {
+      return;
+    }
+
+    // 3. 턴이 비어 있으면 다음 1명 활성화
+    WaitingQueue next = eventQueryRepository.findNextActivatableQueue(eventId);
+    if (next != null) {
+      next.startTurn(now);
+    }
   }
 }
