@@ -182,4 +182,28 @@ public class EventService {
 
     return new EventRewardResponse(slot.getNumber(), slot.getReward());
   }
+
+  @Transactional
+  public void processScheduledEventQueue(LocalDateTime now) {
+
+    // 1. 만료된 대기열 정리
+    eventQueryRepository.deleteExpiredQueues(now);
+
+    // 2. 진행중인 이벤트 확인
+    Long eventId = eventQueryRepository.findOpenedEventId(now);
+    if (eventId == null) {
+      return;
+    }
+
+    // 3. 이벤트에 이미 턴 보유자 있으면 종료
+    if (eventQueryRepository.existsActiveTurn(eventId, now)) {
+      return;
+    }
+
+    // 3. 턴이 비어 있으면 다음 1명 활성화
+    WaitingQueue next = eventQueryRepository.findNextActivatableQueue(eventId);
+    if (next != null) {
+      next.startTurn(now);
+    }
+  }
 }
