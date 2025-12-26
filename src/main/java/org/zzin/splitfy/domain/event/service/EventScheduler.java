@@ -18,7 +18,7 @@ public class EventScheduler {
 
   @Scheduled(fixedDelay = 5000)
   @Transactional
-  public void tick() {
+  public void scheduleEventProcessing() {
     LocalDateTime now = LocalDateTime.now();
 
     // 1. 만료된 대기열 정리
