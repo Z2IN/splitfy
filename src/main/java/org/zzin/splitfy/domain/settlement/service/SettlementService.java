@@ -5,15 +5,28 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.zzin.splitfy.common.dto.CommonPage;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.dto.request.SettlementRequest;
+import org.zzin.splitfy.domain.settlement.dto.response.SettlementHistoryResponse;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementResponse;
+import org.zzin.splitfy.domain.settlement.entity.Payment;
+import org.zzin.splitfy.domain.settlement.entity.PaymentAllocations;
+import org.zzin.splitfy.domain.settlement.entity.Settlement;
 import org.zzin.splitfy.domain.settlement.exception.SettlementErrorCode;
+import org.zzin.splitfy.domain.settlement.mapper.SettlementHistoryMapper;
+import org.zzin.splitfy.domain.settlement.repository.PaymentAllocationsRepository;
+import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
+import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +36,11 @@ public class SettlementService {
   private final SettlementTransferService settlementTransferService;
   private final SettlementStatusService settlementStatusService;
   private final SettlementRecordService settlementRecordService;
+  private final SettlementRepository settlementRepository;
+  private final PaymentRepository paymentRepository;
+  private final PaymentAllocationsRepository paymentAllocationsRepository;
+  private final AuthInnerService authInnerService;
+  private final SettlementHistoryMapper settlementHistoryMapper;
 
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
@@ -108,6 +126,77 @@ public class SettlementService {
     }
 
     return netBalance;
+  }
+
+  public CommonPage<SettlementHistoryResponse> getSettlementHistory(
+      Pageable pageable,
+      AuthUser authUser
+  ) {
+    long userId = authUser.userId();
+
+    // 1. 사용자가 참여한 정산들을 페이징 조회
+    Page<Settlement> settlementPage = settlementRepository.findByParticipantUserId(userId,
+        pageable);
+    List<Settlement> settlements = settlementPage.getContent();
+
+    if (settlements.isEmpty()) {
+      return new CommonPage<>(List.of(), settlementPage.getTotalPages());
+    }
+
+    // 2. 정산 ID 목록 추출
+    List<Long> settlementIds = settlements.stream()
+        .map(Settlement::getId)
+        .toList();
+
+    // 3. 모든 Payment 조회
+    List<Payment> payments = paymentRepository.findBySettlementIdIn(settlementIds);
+
+    // 4. Payment ID 목록 추출
+    List<Long> paymentIds = payments.stream()
+        .map(Payment::getId)
+        .toList();
+
+    // 5. 모든 PaymentAllocations 조회
+    List<PaymentAllocations> allocations = paymentAllocationsRepository.findByPaymentIdIn(
+        paymentIds);
+
+    // 6. 모든 User ID 수집 (payerId + allocationUserId)
+    Set<Long> userIds = new HashSet<>();
+    payments.forEach(payment -> userIds.add(payment.getPayerId()));
+    allocations.forEach(allocation -> userIds.add(allocation.getUserId()));
+
+    // 7. User 정보 조회 및 매핑 (userId -> username)
+    Map<Long, String> userNameMap = authInnerService.findByIdIn(userIds);
+
+    // 8. paymentId별로 allocationNames를 그룹화 (paymentId -> List<allocationName>)
+    Map<Long, List<String>> allocationNameMap = allocations.stream()
+        .collect(Collectors.groupingBy(
+            PaymentAllocations::getPaymentId,
+            Collectors.mapping(
+                allocation -> userNameMap.getOrDefault(allocation.getUserId(), "Unknown"),
+                Collectors.toList()
+            )
+        ));
+
+    // 9. settlementId별로 Payment들을 그룹화
+    Map<Long, List<Payment>> paymentsBySettlementId = payments.stream()
+        .collect(Collectors.groupingBy(Payment::getSettlementId));
+
+    // 10. Settlement -> SettlementHistoryResponse 변환
+    List<SettlementHistoryResponse> responses = settlements.stream()
+        .map(settlement -> {
+          List<Payment> settlementPayments = paymentsBySettlementId.getOrDefault(
+              settlement.getId(), List.of());
+          return settlementHistoryMapper.toResponse(
+              settlement,
+              settlementPayments,
+              userNameMap,
+              allocationNameMap
+          );
+        })
+        .toList();
+
+    return new CommonPage<>(responses, settlementPage.getTotalPages());
   }
 
   /**

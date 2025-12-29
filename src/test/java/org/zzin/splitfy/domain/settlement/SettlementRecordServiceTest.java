@@ -16,8 +16,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.entity.Payment;
+import org.zzin.splitfy.domain.settlement.entity.PaymentAllocations;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
 import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
+import org.zzin.splitfy.domain.settlement.repository.PaymentAllocationsRepository;
 import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
@@ -37,6 +39,9 @@ class SettlementRecordServiceTest {
 
   @Mock
   private SettlementParticipantRepository settlementParticipantRepository;
+
+  @Mock
+  private PaymentAllocationsRepository paymentAllocationsRepository;
 
   @Test
   void createSettlementRecord_정상요청시_정산과결제및참여자가저장된다() {
@@ -72,9 +77,16 @@ class SettlementRecordServiceTest {
         .willReturn(savedSettlement);
 
     given(paymentRepository.save(any(Payment.class)))
+        .willAnswer(invocation -> {
+          Payment payment = invocation.getArgument(0);
+          ReflectionTestUtils.setField(payment, "id", 1L);
+          return payment;
+        });
+
+    given(settlementParticipantRepository.saveAll(any(List.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
-    given(settlementParticipantRepository.save(any(SettlementParticipant.class)))
+    given(paymentAllocationsRepository.saveAll(any(List.class)))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     Long settlementId = settlementRecordService.createSettlementRecord(
@@ -93,7 +105,10 @@ class SettlementRecordServiceTest {
     then(paymentRepository).should(times(2))
         .save(any(Payment.class));
 
-    then(settlementParticipantRepository).should(times(2))
-        .save(any(SettlementParticipant.class));
+    then(settlementParticipantRepository).should(times(1))
+        .saveAll(any(List.class));
+
+    then(paymentAllocationsRepository).should(times(1))
+        .saveAll(any(List.class));
   }
 }
