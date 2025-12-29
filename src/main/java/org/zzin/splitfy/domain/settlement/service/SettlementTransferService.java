@@ -59,6 +59,7 @@ public class SettlementTransferService {
 
         // 실제 이체 실행: debtorId가 creditorId에게 transferAmount만큼 이체
         pointInnerService.transferPoint(debtorId, creditorId, transferAmount);
+
         // 잔액 업데이트
         remainingDebt -= transferAmount;
         creditorEntry.setValue(remainingCredit - transferAmount);
