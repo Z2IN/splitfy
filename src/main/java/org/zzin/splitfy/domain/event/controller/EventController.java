@@ -17,9 +17,12 @@ import org.zzin.splitfy.common.dto.CommonCursor;
 import org.zzin.splitfy.common.dto.CommonResponse;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.EventCursor;
+import java.util.List;
 import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
 import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberListResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.GetEventsByResponse;
@@ -47,6 +50,13 @@ public class EventController {
   public CommonResponse<EventResponse> getEvent(
       @PathVariable("eventId") Long eventId) {
     EventResponse response = eventService.getEvent(eventId);
+    return CommonResponse.success(response);
+  }
+
+  @GetMapping("/{eventId}/numbers")
+  public CommonResponse<EventNumberListResponse> getEventNumbers(
+      @PathVariable("eventId") Long eventId, @AuthenticationPrincipal AuthUser authUser) {
+    EventNumberListResponse response = eventService.getEventNumbers(eventId, authUser);
     return CommonResponse.success(response);
   }
 

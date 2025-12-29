@@ -1,6 +1,6 @@
 package org.zzin.splitfy.domain.event;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -21,6 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberListResponse;
+import org.zzin.splitfy.domain.event.dto.response.EventNumberResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventRewardResponse;
 import org.zzin.splitfy.domain.event.dto.response.JoinQueueResponse;
@@ -33,6 +35,7 @@ import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
 import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
+import org.zzin.splitfy.domain.event.repository.EventNumberRepository;
 import org.zzin.splitfy.domain.event.repository.EventQueryRepository;
 import org.zzin.splitfy.domain.event.repository.EventRepository;
 import org.zzin.splitfy.domain.event.repository.WaitingQueueRepository;
@@ -59,6 +62,9 @@ public class EventServiceTest {
 
   @Mock
   private PointInnerService pointInnerService;
+
+  @Mock
+  private EventNumberRepository eventNumberRepository;
 
   @InjectMocks
   private EventService eventService;
@@ -107,6 +113,53 @@ public class EventServiceTest {
   }
 
   @Test
+  void getEventNumbers_정상적으로_번호_목록_조회_성공() {
+    // given
+    Long eventId = 1L;
+    long userId = 100L;
+    LocalDateTime now = LocalDateTime.now();
+
+    Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
+        EventStatus.OPENED, 100L);
+
+    WaitingQueue headQueue = mock(WaitingQueue.class);
+    given(headQueue.getUserId()).willReturn(userId);
+
+    EventNumber number1 = createEventNumber(eventId, 1, 1000L, false);
+    EventNumber number2 = createEventNumber(eventId, 2, 2000L, true);
+    EventNumber number3 = createEventNumber(eventId, 3, 500L, false);
+
+    EventNumberResponse response1 = new EventNumberResponse(1, false);
+    EventNumberResponse response2 = new EventNumberResponse(2, true);
+    EventNumberResponse response3 = new EventNumberResponse(3, false);
+
+    given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+    given(eventQueryRepository.findHead(eventId)).willReturn(headQueue);
+    given(eventNumberRepository.findByEventIdOrderByNumberAsc(eventId))
+        .willReturn(java.util.List.of(number1, number2, number3));
+    given(eventMapper.toResponse(number1)).willReturn(response1);
+    given(eventMapper.toResponse(number2)).willReturn(response2);
+    given(eventMapper.toResponse(number3)).willReturn(response3);
+
+    // when
+    EventNumberListResponse response = eventService.getEventNumbers(eventId, new AuthUser(userId));
+
+    // then
+    assertThat(response.eventId()).isEqualTo(eventId);
+    assertThat(response.numbers()).hasSize(3);
+    assertThat(response.numbers().get(0).number()).isEqualTo(1);
+    assertThat(response.numbers().get(0).isSelected()).isFalse();
+    assertThat(response.numbers().get(1).number()).isEqualTo(2);
+    assertThat(response.numbers().get(1).isSelected()).isTrue();
+    assertThat(response.numbers().get(2).number()).isEqualTo(3);
+    assertThat(response.numbers().get(2).isSelected()).isFalse();
+
+    then(eventRepository).should(times(1)).findById(eventId);
+    then(eventQueryRepository).should(times(1)).findHead(eventId);
+    then(eventNumberRepository).should(times(1)).findByEventIdOrderByNumberAsc(eventId);
+  }
+
+  @Test
   void joinQueue_첫번째_참가자_성공() {
     // given
     long eventId = 1L;
@@ -123,7 +176,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-            0L);
+        0L);
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -153,7 +206,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-            4L); // 앞에 4명
+        4L); // 앞에 4명
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -363,8 +416,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -386,8 +439,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -409,8 +462,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -437,8 +490,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -461,8 +514,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -490,8 +543,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }
@@ -522,8 +575,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-            .isInstanceOf(BusinessException.class)
-            .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
+        .isInstanceOf(BusinessException.class)
+        .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }
