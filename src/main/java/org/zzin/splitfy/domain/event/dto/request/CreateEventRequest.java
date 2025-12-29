@@ -28,7 +28,7 @@ public record CreateEventRequest(
     @NotNull(message = "이벤트 재고 입력은 필수입니다.")
     @Min(value = 5, message = "이벤트 재고는 최소 5 이상이어야 합니다.")
     @Max(value = 100, message = "이벤트 재고는 최대 100 이하이어야 합니다.")
-    int totalStock
+    Integer totalStock
 ) {
 
 }
