@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
-import org.zzin.splitfy.domain.point.dto.PointTransferSummaryDTO;
 import org.zzin.splitfy.domain.point.dto.response.DepositResponse;
 import org.zzin.splitfy.domain.point.dto.response.TransferResponse;
 import org.zzin.splitfy.domain.point.entity.UserPoint;
@@ -25,6 +24,7 @@ public class PointService {
 
   private final TransactionInnerService transactionInnerService;
   private final UserPointRepository userPointRepository;
+  private final UserPointsTransactionService userPointsTransactionService;
 
   /**
    * 주어진 사용자 ID에 대한 포인트 잔액을 조회하여 반환합니다.
@@ -83,7 +83,7 @@ public class PointService {
   public TransferResponse transferTo(long toUserId, long amount, AuthUser authUser) {
     String transactionUUID = UUID.randomUUID().toString();
 
-    var pointChangeDetail = transferPoint(
+    var pointChangeDetail = userPointsTransactionService.transferPoints(
         authUser.userId(),
         toUserId,
         amount
@@ -114,32 +114,5 @@ public class PointService {
         .beforePoint(pointChangeDetail.getSenderBeforePoint())
         .afterPoint(pointChangeDetail.getSenderAfterPoint())
         .build();
-  }
-
-  private PointTransferSummaryDTO transferPoint(long senderId, long receiverId, long amount) {
-    // 본인에게 송금 불가
-    if (senderId == receiverId) {
-      throw new BusinessException(PointErrorCode.CANNOT_TRANSFER_TO_SELF);
-    }
-
-    // 송신자와 수신자 조회
-    UserPoint senderPoint = userPointRepository.findByUserId(senderId)
-        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
-    UserPoint receiverPoint = userPointRepository.findByUserId(receiverId)
-        .orElseThrow(() -> new BusinessException(PointErrorCode.USER_NOT_FOUND));
-
-    // 이전 포인트 저장
-    long senderBeforePoint = senderPoint.getPoint();
-    long receiverBeforePoint = receiverPoint.getPoint();
-
-    senderPoint.deductPoint(amount);
-    receiverPoint.addPoint(amount);
-
-    return new PointTransferSummaryDTO(
-        senderBeforePoint,
-        senderPoint.getPoint(),
-        receiverBeforePoint,
-        receiverPoint.getPoint()
-    );
   }
 }

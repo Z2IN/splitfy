@@ -22,6 +22,7 @@ public class DefaultPointInnerService implements PointInnerService {
 
   private final UserPointRepository userPointRepository;
   private final TransactionInnerService transactionInnerService;
+  private final UserPointsTransactionService userPointsTransactionService;
 
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
@@ -40,7 +41,33 @@ public class DefaultPointInnerService implements PointInnerService {
   @Override
   @Transactional
   public void transferPoint(long fromUserId, long toUserId, long amount) {
-    // TODO: PointService.transferTo 로직을 참고하여 구현
+    String transactionUUID = UUID.randomUUID().toString();
+
+    var pointChangeDetail = userPointsTransactionService.transferPoints(
+        fromUserId,
+        toUserId,
+        amount
+    );
+
+    var transferOutInfo = TransactionInfoDTO.builder()
+        .transactionUUID(transactionUUID)
+        .userId(fromUserId)
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getSenderBeforePoint())
+        .afterPoint(pointChangeDetail.getSenderAfterPoint())
+        .build();
+
+    transactionInnerService.createTransferOutTransaction(transferOutInfo);
+
+    var transferInInfo = TransactionInfoDTO.builder()
+        .transactionUUID(transactionUUID)
+        .userId(toUserId)
+        .amount(amount)
+        .beforePoint(pointChangeDetail.getReceiverBeforePoint())
+        .afterPoint(pointChangeDetail.getReceiverAfterPoint())
+        .build();
+
+    transactionInnerService.createTransferInTransaction(transferInInfo);
   }
 
   @Override
