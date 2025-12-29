@@ -2,6 +2,8 @@ package org.zzin.splitfy.domain.event.service;
 
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
@@ -27,6 +29,7 @@ import org.zzin.splitfy.domain.event.entity.Event;
 import org.zzin.splitfy.domain.event.entity.EventEntry;
 import org.zzin.splitfy.domain.event.entity.EventNumber;
 import org.zzin.splitfy.domain.event.entity.WaitingQueue;
+import org.zzin.splitfy.domain.event.enums.EventStatus;
 import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 import org.zzin.splitfy.domain.event.mapper.EventMapper;
 import org.zzin.splitfy.domain.event.repository.EventEntryRepository;
@@ -41,6 +44,12 @@ import org.zzin.splitfy.domain.point.service.PointInnerService;
 @RequiredArgsConstructor
 public class EventService {
 
+  private static final long TOTAL_REWARD = 200_000L; // 이벤트 고정 예산
+  private static final int MIN_REWARD = 1_000;      // 최소 보장
+
+  private static final int JACKPOT_PERCENT = 30;    // remaining의 30%
+  private static final int UNIT = 1_000;            // 1,000원 단위
+
   private final EventRepository eventRepository;
   private final EventMapper eventMapper;
   private final EventEntryRepository eventEntryRepository;
@@ -52,11 +61,59 @@ public class EventService {
   @Transactional
   public CreateEventResponse createEvent(CreateEventRequest request) {
 
-    Event event = Event.builder().title(request.title()).description(request.description())
-        .totalStock(request.totalStock()).startAt(request.startAt()).endAt(request.endAt()).build();
+    int totalStock = request.totalStock(); // 재고 = 슬롯 수
+
+    Event event = Event.builder()
+        .title(request.title())
+        .description(request.description())
+        .totalStock(request.totalStock())
+        .status(EventStatus.SCHEDULED)
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .build();
 
     Event saved = eventRepository.save(event);
 
+    //번호판 생성
+    int baseTotal = totalStock * MIN_REWARD;
+    int remaining = (int) TOTAL_REWARD - baseTotal;
+
+    // 전부 최소 보장으로 채우기
+    List<Integer> rewards = new ArrayList<>(totalStock);
+    for (int i = 0; i < totalStock; i++) {
+      rewards.add(MIN_REWARD);
+    }
+
+    // remaining 없으면 그대로
+    if (remaining > 0) {
+
+      // 2) 대박 1개 (항상 0번)
+      int jackpotDelta = remaining * JACKPOT_PERCENT / 100;
+      jackpotDelta = jackpotDelta / UNIT * UNIT; // 1000원 단위 내림
+
+      rewards.set(0, rewards.get(0) + jackpotDelta);
+      remaining -= jackpotDelta;
+
+      // 3) 남은 돈 분산 (1번부터)
+      int idx = 1 % totalStock;
+      while (remaining >= UNIT) {
+        rewards.set(idx, rewards.get(idx) + UNIT);
+        remaining -= UNIT;
+        idx = (idx + 1) % totalStock;
+      }
+
+      Collections.shuffle(rewards);
+    }
+
+    List<EventNumber> numbers = new ArrayList<>(totalStock);
+    for (int number = 1; number <= totalStock; number++) {
+      numbers.add(EventNumber.builder()
+          .eventId(saved.getId())
+          .number(number)
+          .reward(rewards.get(number - 1))
+          .build());
+    }
+    eventNumberRepository.saveAll(numbers);
     return new CreateEventResponse(saved.getId());
   }
 

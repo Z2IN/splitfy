@@ -12,15 +12,20 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
+import org.zzin.splitfy.domain.event.dto.request.CreateEventRequest;
 import org.zzin.splitfy.domain.event.dto.request.SelectEventNumberRequest;
+import org.zzin.splitfy.domain.event.dto.response.CreateEventResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventNumberListResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventNumberResponse;
 import org.zzin.splitfy.domain.event.dto.response.EventResponse;
@@ -69,13 +74,68 @@ public class EventServiceTest {
   @InjectMocks
   private EventService eventService;
 
+
+  @Test
+  void createEvent_정상적으로_이벤트와_번호판_생성() {
+    // given
+    CreateEventRequest request = new CreateEventRequest(
+        "테스트 이벤트",
+        "설명",
+        LocalDateTime.now().plusDays(1),
+        LocalDateTime.now().plusDays(2),
+        10
+    );
+
+    Event savedEvent = Event.builder()
+        .title(request.title())
+        .description(request.description())
+        .startAt(request.startAt())
+        .endAt(request.endAt())
+        .totalStock(request.totalStock())
+        .status(EventStatus.SCHEDULED)
+        .build();
+
+    ReflectionTestUtils.setField(savedEvent, "id", 1L);
+
+    given(eventRepository.save(any(Event.class))).willReturn(savedEvent);
+    ArgumentCaptor<List<EventNumber>> captor = ArgumentCaptor.forClass(List.class);
+
+    // when
+    CreateEventResponse response = eventService.createEvent(request);
+
+    // then
+    assertThat(response.eventId()).isEqualTo(1L);
+    then(eventRepository).should(times(1)).save(any(Event.class));
+    then(eventNumberRepository).should(times(1)).saveAll(captor.capture());
+
+    List<EventNumber> numbers = captor.getValue();
+
+    // 개수 및 보상 규칙 검증
+    assertThat(numbers)
+        .hasSize(10)
+        .allMatch(n -> n.getReward() >= 2_000)
+        .allMatch(n -> n.getReward() % 1_000 == 0);
+
+    // 보상 합계 검증
+    long totalReward = numbers.stream()
+        .mapToLong(EventNumber::getReward)
+        .sum();
+    assertThat(totalReward).isEqualTo(200_000L);
+
+    // 번호 연속성 검증 (1~10)
+    assertThat(numbers)
+        .extracting(EventNumber::getNumber)
+        .containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+  }
+
+
   @Test
   void getEvent_존재하는_이벤트조회_성공() {
     // given
     Long eventId = 1L;
     LocalDateTime now = LocalDateTime.now();
     Event event = createEventWithTime("진행중인 이벤트", now.minusHours(1), now.plusHours(1),
-        EventStatus.OPENED, 100L);
+        EventStatus.OPENED, 10L);
     given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
 
     EventResponse mapped = new EventResponse(
@@ -597,17 +657,8 @@ public class EventServiceTest {
         .build();
 
     // Reflection으로 실제 원하는 시간 설정
-    try {
-      var startAtField = Event.class.getDeclaredField("startAt");
-      startAtField.setAccessible(true);
-      startAtField.set(event, startAt);
-
-      var endAtField = Event.class.getDeclaredField("endAt");
-      endAtField.setAccessible(true);
-      endAtField.set(event, endAt);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    ReflectionTestUtils.setField(event, "startAt", startAt);
+    ReflectionTestUtils.setField(event, "endAt", endAt);
 
     return event;
   }
@@ -619,47 +670,24 @@ public class EventServiceTest {
         .build();
 
     // Reflection을 사용하여 id와 joinAt 설정
-    try {
-      var idField = WaitingQueue.class.getDeclaredField("id");
-      idField.setAccessible(true);
-      idField.set(queue, id);
-
-      var joinAtField = WaitingQueue.class.getDeclaredField("joinAt");
-      joinAtField.setAccessible(true);
-      joinAtField.set(queue, LocalDateTime.now().plusDays(2));
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    ReflectionTestUtils.setField(queue, "id", id);
+    ReflectionTestUtils.setField(queue, "joinAt", LocalDateTime.now().plusDays(2));
 
     return queue;
   }
 
   private EventNumber createEventNumber(Long eventId, int number, long reward,
       boolean selected) {
-    try {
-      var constructor = EventNumber.class.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      EventNumber eventNumber = constructor.newInstance();
+    EventNumber eventNumber = EventNumber.builder()
+        .eventId(eventId)
+        .number(number)
+        .reward(reward)
+        .build();
 
-      var eventIdField = EventNumber.class.getDeclaredField("eventId");
-      eventIdField.setAccessible(true);
-      eventIdField.set(eventNumber, eventId);
-
-      var numberField = EventNumber.class.getDeclaredField("number");
-      numberField.setAccessible(true);
-      numberField.set(eventNumber, number);
-
-      var rewardField = EventNumber.class.getDeclaredField("reward");
-      rewardField.setAccessible(true);
-      rewardField.set(eventNumber, reward);
-
-      var selectedField = EventNumber.class.getDeclaredField("selected");
-      selectedField.setAccessible(true);
-      selectedField.set(eventNumber, selected);
-
-      return eventNumber;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (selected) {
+      ReflectionTestUtils.setField(eventNumber, "selected", true);
     }
+
+    return eventNumber;
   }
 }
