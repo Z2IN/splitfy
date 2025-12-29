@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.point.service;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@NullMarked
 public class UserPointsTransactionService {
 
   private final UserPointRepository userPointRepository;
