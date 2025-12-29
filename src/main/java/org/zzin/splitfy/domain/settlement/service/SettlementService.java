@@ -11,6 +11,7 @@ import org.jspecify.annotations.NullMarked;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.dto.CommonPage;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
@@ -104,10 +105,8 @@ public class SettlementService {
    * @param allocated   사용자별 부담금 (부담해야 하는 금액)
    * @return 사용자별 정산 금액 (양수: 받을 금액, 음수: 줘야 할 금액)
    */
-  private Map<Long, Long> calculateNetBalance(
-      Map<Long, Long> contributed,
-      Map<Long, Long> allocated
-  ) {
+  private Map<Long, Long> calculateNetBalance(Map<Long, Long> contributed,
+      Map<Long, Long> allocated) {
     Map<Long, Long> netBalance = new HashMap<>();
 
     // contributed와 allocated를 모두 고려하여 모든 사용자의 정산 금액 계산
@@ -128,10 +127,9 @@ public class SettlementService {
     return netBalance;
   }
 
-  public CommonPage<SettlementHistoryResponse> getSettlementHistory(
-      Pageable pageable,
-      AuthUser authUser
-  ) {
+  @Transactional(readOnly = true)
+  public CommonPage<SettlementHistoryResponse> getSettlementHistory(Pageable pageable,
+      AuthUser authUser) {
     long userId = authUser.userId();
 
     // 1. 사용자가 참여한 정산들을 페이징 조회
@@ -144,17 +142,13 @@ public class SettlementService {
     }
 
     // 2. 정산 ID 목록 추출
-    List<Long> settlementIds = settlements.stream()
-        .map(Settlement::getId)
-        .toList();
+    List<Long> settlementIds = settlements.stream().map(Settlement::getId).toList();
 
     // 3. 모든 Payment 조회
     List<Payment> payments = paymentRepository.findBySettlementIdIn(settlementIds);
 
     // 4. Payment ID 목록 추출
-    List<Long> paymentIds = payments.stream()
-        .map(Payment::getId)
-        .toList();
+    List<Long> paymentIds = payments.stream().map(Payment::getId).toList();
 
     // 5. 모든 PaymentAllocations 조회
     List<PaymentAllocations> allocations = paymentAllocationsRepository.findByPaymentIdIn(
@@ -169,32 +163,22 @@ public class SettlementService {
     Map<Long, String> userNameMap = authInnerService.findByIdIn(userIds);
 
     // 8. paymentId별로 allocationNames를 그룹화 (paymentId -> List<allocationName>)
-    Map<Long, List<String>> allocationNameMap = allocations.stream()
-        .collect(Collectors.groupingBy(
-            PaymentAllocations::getPaymentId,
-            Collectors.mapping(
-                allocation -> userNameMap.getOrDefault(allocation.getUserId(), "Unknown"),
-                Collectors.toList()
-            )
-        ));
+    Map<Long, List<String>> allocationNameMap = allocations.stream().collect(
+        Collectors.groupingBy(PaymentAllocations::getPaymentId, Collectors.mapping(
+            allocation -> userNameMap.getOrDefault(allocation.getUserId(), "Unknown"),
+            Collectors.toList())));
 
     // 9. settlementId별로 Payment들을 그룹화
     Map<Long, List<Payment>> paymentsBySettlementId = payments.stream()
         .collect(Collectors.groupingBy(Payment::getSettlementId));
 
     // 10. Settlement -> SettlementHistoryResponse 변환
-    List<SettlementHistoryResponse> responses = settlements.stream()
-        .map(settlement -> {
-          List<Payment> settlementPayments = paymentsBySettlementId.getOrDefault(
-              settlement.getId(), List.of());
-          return settlementHistoryMapper.toResponse(
-              settlement,
-              settlementPayments,
-              userNameMap,
-              allocationNameMap
-          );
-        })
-        .toList();
+    List<SettlementHistoryResponse> responses = settlements.stream().map(settlement -> {
+      List<Payment> settlementPayments = paymentsBySettlementId.getOrDefault(settlement.getId(),
+          List.of());
+      return settlementHistoryMapper.toResponse(settlement, settlementPayments, userNameMap,
+          allocationNameMap);
+    }).toList();
 
     return new CommonPage<>(responses, settlementPage.getTotalPages());
   }
