@@ -13,25 +13,21 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "settlement_participants")
-public class SettlementParticipant {
+@Table(name = "payment_allocations")
+public class PaymentAllocations {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "settlement_id", nullable = false)
-  private long settlementId;
+  @Column(name = "payment_id", nullable = false)
+  private long paymentId;
 
-  @Column(nullable = false)
-  private long participantId;
+  @Column(name = "user_id", nullable = false)
+  private long userId;
 
-  @Column
-  private long settlementAmount;
-
-  public SettlementParticipant(long settlementId, long participantId, long settlementAmount) {
-    this.settlementId = settlementId;
-    this.participantId = participantId;
-    this.settlementAmount = settlementAmount;
+  public PaymentAllocations(long paymentId, long userId) {
+    this.paymentId = paymentId;
+    this.userId = userId;
   }
 }

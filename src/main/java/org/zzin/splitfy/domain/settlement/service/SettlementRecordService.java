@@ -1,5 +1,6 @@
 package org.zzin.splitfy.domain.settlement.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -9,8 +10,10 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.entity.Payment;
+import org.zzin.splitfy.domain.settlement.entity.PaymentAllocations;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
 import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
+import org.zzin.splitfy.domain.settlement.repository.PaymentAllocationsRepository;
 import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
@@ -23,6 +26,7 @@ public class SettlementRecordService {
   private final SettlementRepository settlementRepository;
   private final PaymentRepository paymentRepository;
   private final SettlementParticipantRepository settlementParticipantRepository;
+  private final PaymentAllocationsRepository paymentAllocationsRepository;
 
   /**
    * 정산 요청에 대한 settlement, payment, participant 기록을 저장합니다.
@@ -43,29 +47,34 @@ public class SettlementRecordService {
       Map<Long, Long> netBalance
   ) {
     // Settlement 생성 및 저장
-    Settlement settlement = new Settlement(issuerId, totalAmount, totalRemainder);
-    settlement = settlementRepository.save(settlement);
+    Settlement savedSettlement = settlementRepository.save(
+        new Settlement(issuerId, totalAmount, totalRemainder)
+    );
 
-    // Payment 엔티티 생성 및 저장
+    // Payment 엔티티 생성 및 저장 + PaymentAllocations 저장
+    List<PaymentAllocations> allAllocations = new ArrayList<>();
     for (PaymentRequest paymentRequest : paymentRequests) {
-      Payment payment = settlement.createPayment(
+      Payment payment = savedSettlement.createPayment(
           paymentRequest.paidAmount(),
           paymentRequest.payerId(),
           paymentRequest.title()
       );
-      paymentRepository.save(payment);
+      payment = paymentRepository.save(payment);
+
+      // PaymentAllocations 수집 (각 payment의 정산 대상자)
+      for (Long allocationId : paymentRequest.allocationIds()) {
+        allAllocations.add(new PaymentAllocations(payment.getId(), allocationId));
+      }
     }
+    paymentAllocationsRepository.saveAll(allAllocations);
 
     // SettlementParticipant 저장 (각 사용자의 정산 금액)
-    for (Map.Entry<Long, Long> entry : netBalance.entrySet()) {
-      SettlementParticipant participant = settlement.createParticipant(
-          entry.getKey(),
-          entry.getValue()
-      );
-      settlementParticipantRepository.save(participant);
-    }
+    List<SettlementParticipant> participants = netBalance.entrySet().stream()
+        .map(entry -> savedSettlement.createParticipant(entry.getKey(), entry.getValue()))
+        .toList();
+    settlementParticipantRepository.saveAll(participants);
 
-    return settlement.getId();
+    return savedSettlement.getId();
   }
 
 }
