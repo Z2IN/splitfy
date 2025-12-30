@@ -2,9 +2,10 @@ package org.zzin.splitfy.domain.event.dto.request;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
@@ -25,8 +26,9 @@ public record CreateEventRequest(
     LocalDateTime endAt,
 
     @NotNull(message = "이벤트 재고 입력은 필수입니다.")
-    @Positive(message = "이벤트 재고는 1 이상의 양수여야 합니다.")
-    Long totalStock
+    @Min(value = 5, message = "이벤트 재고는 최소 5 이상이어야 합니다.")
+    @Max(value = 100, message = "이벤트 재고는 최대 100 이하이어야 합니다.")
+    Integer totalStock
 ) {
 
 }

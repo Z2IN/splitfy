@@ -24,8 +24,8 @@ import org.zzin.splitfy.domain.event.exception.EventErrorCode;
 @Table(name = "events")
 public class Event {
 
-  private static final long MIN_STOCK = 1L;
-  private static final long MAX_STOCK = 100_000L;
+  private static final long MIN_STOCK = 5L;
+  private static final long MAX_STOCK = 100L;
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

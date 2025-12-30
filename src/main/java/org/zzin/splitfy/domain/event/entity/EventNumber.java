@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -34,6 +35,13 @@ public class EventNumber {
 
   @Column(nullable = false)
   private boolean selected;
+
+  @Builder
+  public EventNumber(long eventId, int number, long reward, boolean selected) {
+    this.eventId = eventId;
+    this.number = number;
+    this.reward = reward;
+  }
 
   public void select() {
     this.selected = true;
