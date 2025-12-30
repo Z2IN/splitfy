@@ -26,7 +26,7 @@ public class SettlementParticipant {
   @Column(nullable = false)
   private long participantId;
 
-  @Column
+  @Column(nullable = false)
   private long settlementAmount;
 
   public SettlementParticipant(long settlementId, long participantId, long settlementAmount) {

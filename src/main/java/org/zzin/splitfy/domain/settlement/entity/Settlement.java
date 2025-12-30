@@ -53,7 +53,6 @@ public class Settlement {
     this.totalAmount = totalAmount;
     this.remainder = remainder;
     this.status = SettlementStatus.PENDING;
-    this.issuedAt = LocalDateTime.now();
   }
 
   public Payment createPayment(long paidAmount, long payerId, String title) {

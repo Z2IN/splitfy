@@ -1,9 +1,11 @@
 package org.zzin.splitfy.domain.settlement.service;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,12 @@ import org.zzin.splitfy.domain.settlement.dto.PaymentAllocationDto;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.dto.request.SettlementRequest;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementHistoryResponse;
+import org.zzin.splitfy.domain.settlement.dto.response.SettlementPaymentResponse;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementResponse;
-import org.zzin.splitfy.domain.settlement.entity.Payment;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
+import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
 import org.zzin.splitfy.domain.settlement.exception.SettlementErrorCode;
-import org.zzin.splitfy.domain.settlement.mapper.SettlementHistoryMapper;
+import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementQueryRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
@@ -39,7 +42,7 @@ public class SettlementService {
   private final SettlementRepository settlementRepository;
   private final SettlementQueryRepository settlementQueryRepository;
   private final AuthInnerService authInnerService;
-  private final SettlementHistoryMapper settlementHistoryMapper;
+  private final SettlementParticipantRepository settlementParticipantRepository;
 
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
@@ -142,58 +145,73 @@ public class SettlementService {
     // 2. 정산 ID 목록 추출
     List<Long> settlementIds = settlements.stream().map(Settlement::getId).toList();
 
-    // 3. Repository를 통해 Payment와 PaymentAllocations를 한 번의 쿼리로 조회
+    // 3. 현재 사용자의 정산 금액 조회
+    List<SettlementParticipant> participants = settlementParticipantRepository
+        .findBySettlementIdIn(settlementIds);
+    Map<Long, Long> settlementAmountMap = participants.stream()
+        .filter(p -> p.getParticipantId() == userId)
+        .collect(Collectors.toMap(
+            SettlementParticipant::getSettlementId,
+            SettlementParticipant::getSettlementAmount
+        ));
+
+    // 4. Repository를 통해 Payment와 PaymentAllocations를 한 번의 쿼리로 조회
     List<PaymentAllocationDto> dtos = settlementQueryRepository
         .findPaymentAllocationsInSettlements(settlementIds);
 
-    // 4. DTO에서 데이터 추출 및 그룹화
-    Map<Long, Payment> paymentMap = new HashMap<>();
-    Map<Long, List<Long>> allocationUserIdsByPayment = new HashMap<>();
+    // 5. User ID 수집
     Set<Long> userIds = new HashSet<>();
-
     for (PaymentAllocationDto dto : dtos) {
-      // Payment 객체 생성 (중복 제거)
-      paymentMap.computeIfAbsent(dto.paymentId(), id -> {
-        Payment p = new Payment(dto.paidAmount(), dto.payerId(), dto.shareAmount(), dto.title());
-        p.setSettlementId(dto.settlementId());
-        userIds.add(dto.payerId());
-        return p;
-      });
-
-      // Allocation User ID 수집
+      userIds.add(dto.payerId());
       if (dto.allocationUserId() != null) {
-        allocationUserIdsByPayment.computeIfAbsent(dto.paymentId(),
-                k -> new java.util.ArrayList<>())
-            .add(dto.allocationUserId());
         userIds.add(dto.allocationUserId());
       }
     }
 
-    // 5. User 정보 조회
+    // 6. User 정보 조회
     Map<Long, String> userNameMap = authInnerService.findByIdIn(userIds);
 
-    // 6. paymentId별로 allocationNames를 그룹화
-    Map<Long, List<String>> allocationNameMap = allocationUserIdsByPayment.entrySet().stream()
-        .collect(Collectors.toMap(
+    // 7. paymentId로 그룹화하여 SettlementPaymentResponse 생성 후 settlementId로 재그룹화
+    Map<Long, List<SettlementPaymentResponse>> paymentsBySettlement = dtos.stream()
+        .collect(Collectors.groupingBy(PaymentAllocationDto::paymentId))
+        .values().stream()
+        .map(group -> {
+          PaymentAllocationDto first = group.get(0);
+          List<String> allocationNames = group.stream()
+              .map(PaymentAllocationDto::allocationUserId)
+              .filter(Objects::nonNull)
+              .map(uid -> userNameMap.getOrDefault(uid, "알 수 없는 사용자"))
+              .distinct()
+              .sorted()
+              .toList();
+
+          return new AbstractMap.SimpleEntry<>(
+              first.settlementId(),
+              new SettlementPaymentResponse(
+                  first.title(),
+                  first.paidAmount(),
+                  userNameMap.get(first.payerId()),
+                  allocationNames
+              )
+          );
+        })
+        .collect(Collectors.groupingBy(
             Map.Entry::getKey,
-            e -> e.getValue().stream()
-                .map(uid -> userNameMap.getOrDefault(uid, "알 수 없는 사용자"))
-                .distinct()
-                .sorted()
-                .toList()
+            Collectors.mapping(Map.Entry::getValue, Collectors.toList())
         ));
 
-    // 7. settlementId별로 Payment들을 그룹화
-    Map<Long, List<Payment>> paymentsBySettlementId = paymentMap.values().stream()
-        .collect(Collectors.groupingBy(Payment::getSettlementId));
-
     // 8. Settlement -> SettlementHistoryResponse 변환
-    List<SettlementHistoryResponse> responses = settlements.stream().map(settlement -> {
-      List<Payment> settlementPayments = paymentsBySettlementId.getOrDefault(settlement.getId(),
-          List.of());
-      return settlementHistoryMapper.toResponse(settlement, settlementPayments, userNameMap,
-          allocationNameMap);
-    }).toList();
+    List<SettlementHistoryResponse> responses = settlements.stream()
+        .map(settlement -> new SettlementHistoryResponse(
+            settlement.getId(),
+            settlement.getTotalAmount(),
+            settlement.getStatus(),
+            settlement.getIssuedAt(),
+            settlement.getSucceededAt(),
+            settlementAmountMap.getOrDefault(settlement.getId(), 0L),
+            paymentsBySettlement.getOrDefault(settlement.getId(), List.of())
+        ))
+        .toList();
 
     return new CommonPage<>(responses, settlementPage.getTotalPages());
   }

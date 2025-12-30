@@ -46,5 +46,4 @@ public class Payment {
   public void setSettlementId(long settlementId) {
     this.settlementId = settlementId;
   }
-
 }
