@@ -25,7 +25,9 @@ import org.zzin.splitfy.domain.settlement.dto.response.SettlementHistoryResponse
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementPaymentResponse;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementResponse;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
+import org.zzin.splitfy.domain.settlement.entity.SettlementParticipant;
 import org.zzin.splitfy.domain.settlement.exception.SettlementErrorCode;
+import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementQueryRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 
@@ -40,6 +42,7 @@ public class SettlementService {
   private final SettlementRepository settlementRepository;
   private final SettlementQueryRepository settlementQueryRepository;
   private final AuthInnerService authInnerService;
+  private final SettlementParticipantRepository settlementParticipantRepository;
 
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
@@ -142,11 +145,21 @@ public class SettlementService {
     // 2. 정산 ID 목록 추출
     List<Long> settlementIds = settlements.stream().map(Settlement::getId).toList();
 
-    // 3. Repository를 통해 Payment와 PaymentAllocations를 한 번의 쿼리로 조회
+    // 3. 현재 사용자의 정산 금액 조회
+    List<SettlementParticipant> participants = settlementParticipantRepository
+        .findBySettlementIdIn(settlementIds);
+    Map<Long, Long> settlementAmountMap = participants.stream()
+        .filter(p -> p.getParticipantId() == userId)
+        .collect(Collectors.toMap(
+            SettlementParticipant::getSettlementId,
+            SettlementParticipant::getSettlementAmount
+        ));
+
+    // 4. Repository를 통해 Payment와 PaymentAllocations를 한 번의 쿼리로 조회
     List<PaymentAllocationDto> dtos = settlementQueryRepository
         .findPaymentAllocationsInSettlements(settlementIds);
 
-    // 4. User ID 수집
+    // 5. User ID 수집
     Set<Long> userIds = new HashSet<>();
     for (PaymentAllocationDto dto : dtos) {
       userIds.add(dto.payerId());
@@ -155,10 +168,10 @@ public class SettlementService {
       }
     }
 
-    // 5. User 정보 조회
+    // 6. User 정보 조회
     Map<Long, String> userNameMap = authInnerService.findByIdIn(userIds);
 
-    // 6. paymentId로 그룹화하여 SettlementPaymentResponse 생성 후 settlementId로 재그룹화
+    // 7. paymentId로 그룹화하여 SettlementPaymentResponse 생성 후 settlementId로 재그룹화
     Map<Long, List<SettlementPaymentResponse>> paymentsBySettlement = dtos.stream()
         .collect(Collectors.groupingBy(PaymentAllocationDto::paymentId))
         .values().stream()
@@ -187,7 +200,7 @@ public class SettlementService {
             Collectors.mapping(Map.Entry::getValue, Collectors.toList())
         ));
 
-    // 7. Settlement -> SettlementHistoryResponse 변환
+    // 8. Settlement -> SettlementHistoryResponse 변환
     List<SettlementHistoryResponse> responses = settlements.stream()
         .map(settlement -> new SettlementHistoryResponse(
             settlement.getId(),
@@ -195,7 +208,7 @@ public class SettlementService {
             settlement.getStatus(),
             settlement.getIssuedAt(),
             settlement.getSucceededAt(),
-            settlement.getRemainder(),
+            settlementAmountMap.getOrDefault(settlement.getId(), 0L),
             paymentsBySettlement.getOrDefault(settlement.getId(), List.of())
         ))
         .toList();
