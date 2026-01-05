@@ -1,6 +1,7 @@
 package org.zzin.splitfy.domain.settlement.service;
 
-import java.util.HashMap;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.domain.point.service.PointInnerService;
+import org.zzin.splitfy.domain.settlement.model.UserBalance;
 
 @Service
 @RequiredArgsConstructor
@@ -23,46 +25,32 @@ public class SettlementTransferService {
    */
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void executeTransfers(Map<Long, Long> netBalance) {
-    Map<Long, Long> creditors = new HashMap<>();  // 결제한 사람 (양수)
-    Map<Long, Long> debtors = new HashMap<>();    // 이체할 사람 (음수)
+    Deque<UserBalance> creditors = new ArrayDeque<>();  // 결제한 사람 (양수)
+    Deque<UserBalance> debtors = new ArrayDeque<>();    // 이체할 사람 (음수)
 
-    for (Map.Entry<Long, Long> entry : netBalance.entrySet()) {
-      long userId = entry.getKey();
-      long balance = entry.getValue();
-
+    netBalance.forEach((userId, balance) -> {
       if (balance > 0) {
-        creditors.put(userId, balance);
+        creditors.add(new UserBalance(userId, balance));
       } else if (balance < 0) {
-        debtors.put(userId, -balance); // 절댓값으로 저장
+        debtors.add(new UserBalance(userId, -balance));
       }
-    }
+    });
 
-    // 이체
-    for (Map.Entry<Long, Long> debtorEntry : debtors.entrySet()) {
-      long debtorId = debtorEntry.getKey();
-      long remainingDebt = debtorEntry.getValue();
+    // 큐 기반 그리디 매칭으로 이체를 수행
+    while (!debtors.isEmpty() && !creditors.isEmpty()) {
+      UserBalance debtor = debtors.peek();
+      UserBalance creditor = creditors.peek();
 
-      for (Map.Entry<Long, Long> creditorEntry : creditors.entrySet()) {
-        if (remainingDebt <= 0) {
-          break;
-        }
+      long transferAmount = Math.min(debtor.getRemaining(), creditor.getRemaining());
+      pointInnerService.transferPoint(debtor.getUserId(), creditor.getUserId(), transferAmount);
 
-        long creditorId = creditorEntry.getKey();
-        long remainingCredit = creditorEntry.getValue();
-
-        if (remainingCredit <= 0) {
-          continue;
-        }
-
-        // 이체할 금액 계산
-        long transferAmount = Math.min(remainingDebt, remainingCredit);
-
-        // 실제 이체 실행: debtorId가 creditorId에게 transferAmount만큼 이체
-        pointInnerService.transferPoint(debtorId, creditorId, transferAmount);
-
-        // 잔액 업데이트
-        remainingDebt -= transferAmount;
-        creditorEntry.setValue(remainingCredit - transferAmount);
+      debtor.minusRemaining(transferAmount);
+      creditor.minusRemaining(transferAmount);
+      if (debtor.isRemainingZero()) {
+        debtors.poll();
+      }
+      if (creditor.isRemainingZero()) {
+        creditors.poll();
       }
     }
   }

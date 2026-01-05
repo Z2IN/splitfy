@@ -46,49 +46,20 @@ public class SettlementService {
 
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
-    List<PaymentRequest> paymentRequests = request.payments();
-
-    // 비즈니스 규칙 검증
-    validatePaymentRequests(paymentRequests);
-
-    // 총 지불 금액 / 정산 금액 계산
-    Map<Long, Long> contributed = new HashMap<>();
-    Map<Long, Long> allocated = new HashMap<>();
-    long totalRemainder = 0L;
-
-    for (PaymentRequest paymentRequest : paymentRequests) {
-      long paidAmount = paymentRequest.paidAmount();
-      long payerId = paymentRequest.payerId();
-      List<Long> allocationIds = paymentRequest.allocationIds();
-
-      // 정산 금액 계산
-      int count = allocationIds.size();    // 정산 대상자 수
-      long eachShare = paidAmount / count; // 1인당 정산 금액
-      long remainder = paidAmount % count; // 나머지 금액 (payerId가 가져감)
-      totalRemainder += remainder;         // 총 나머지 금액 누적
-
-      // 사용자별 지불 금액 누적 (전액)
-      contributed.merge(payerId, paidAmount, Long::sum);
-
-      // 참여자들에게 eachShare만 부과 (remainder는 payerId가 가져감)
-      for (Long userId : allocationIds) {
-        allocated.merge(userId, eachShare, Long::sum);
-      }
-    }
-
-    // totalAmount 계산
-    long totalAmount = allocated.values().stream().mapToLong(Long::longValue).sum();
-
-    // 최소 정산 알고리즘: 사용자별 정산 금액 계산
-    Map<Long, Long> netBalance = calculateNetBalance(contributed, allocated);
+    SettlementCalculation calculation = buildSettlementCalculation(request.payments());
 
     // 1. 정산 요청에 대한 settlement, payment 요청 기록 (첫 번째 트랜잭션)
-    Long settlementId = settlementRecordService.createSettlementRecord(issuerId, totalAmount,
-        totalRemainder, paymentRequests, netBalance);
+    Long settlementId = settlementRecordService.createSettlementRecord(
+        issuerId,
+        calculation.totalAmount(),
+        calculation.totalRemainder(),
+        request.payments(),
+        calculation.netBalance()
+    );
 
     // 2. 이체 실행 (두 번째 트랜잭션)
     try {
-      settlementTransferService.executeTransfers(netBalance);
+      settlementTransferService.executeTransfers(calculation.netBalance());
       // 3. 이체 성공 시 settlement state 변경 (세 번째 트랜잭션)
       settlementStatusService.updateSettlementStatus(settlementId, true);
     } catch (Exception e) {
@@ -97,6 +68,32 @@ public class SettlementService {
     }
 
     return new SettlementResponse(settlementId);
+  }
+
+  private SettlementCalculation buildSettlementCalculation(List<PaymentRequest> paymentRequests) {
+    validatePaymentRequests(paymentRequests);
+
+    Map<Long, Long> contributed = new HashMap<>();
+    Map<Long, Long> allocated = new HashMap<>();
+    long totalRemainder = 0L;
+
+    for (PaymentRequest paymentRequest : paymentRequests) {
+      int allocationCount = paymentRequest.allocationIds().size();
+      long paidAmount = paymentRequest.paidAmount();
+
+      long eachShare = paidAmount / allocationCount;
+      long remainder = paidAmount % allocationCount;
+      totalRemainder += remainder;
+
+      contributed.merge(paymentRequest.payerId(), paidAmount, Long::sum);
+      paymentRequest.allocationIds()
+          .forEach(userId -> allocated.merge(userId, eachShare, Long::sum));
+    }
+
+    long totalAmount = allocated.values().stream().mapToLong(Long::longValue).sum();
+    Map<Long, Long> netBalance = calculateNetBalance(contributed, allocated);
+
+    return new SettlementCalculation(totalAmount, totalRemainder, netBalance);
   }
 
   /**
@@ -125,7 +122,7 @@ public class SettlementService {
       }
     }
 
-    return netBalance;
+    return netBalance.isEmpty() ? Map.of() : Map.copyOf(netBalance);
   }
 
   @Transactional(readOnly = true)
@@ -220,8 +217,20 @@ public class SettlementService {
    * 비즈니스 규칙 검증
    */
   private void validatePaymentRequests(List<PaymentRequest> paymentRequests) {
+    if (paymentRequests == null || paymentRequests.isEmpty()) {
+      throw new BusinessException(SettlementErrorCode.EMPTY_PAYMENT_REQUESTS);
+    }
+
     for (PaymentRequest paymentRequest : paymentRequests) {
+      if (paymentRequest.paidAmount() <= 0) {
+        throw new BusinessException(SettlementErrorCode.INVALID_PAYMENT_AMOUNT);
+      }
+
       List<Long> allocationIds = paymentRequest.allocationIds();
+
+      if (allocationIds == null || allocationIds.isEmpty()) {
+        throw new BusinessException(SettlementErrorCode.EMPTY_ALLOCATION_TARGETS);
+      }
 
       // 중복 검증
       Set<Long> uniqueIds = new HashSet<>(allocationIds);
@@ -229,5 +238,9 @@ public class SettlementService {
         throw new BusinessException(SettlementErrorCode.DUPLICATE_ALLOCATION_TARGETS);
       }
     }
+  }
+
+  private record SettlementCalculation(long totalAmount, long totalRemainder,
+                                       Map<Long, Long> netBalance) {
   }
 }
