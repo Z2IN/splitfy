@@ -3,7 +3,6 @@ package org.zzin.splitfy.domain.settlement.service;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.domain.settlement.entity.Settlement;
@@ -23,7 +22,7 @@ public class SettlementStatusService {
    * @param settlementId Settlement ID
    * @param isSuccess    이체 성공 여부
    */
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional
   public void updateSettlementStatus(Long settlementId, boolean isSuccess) {
     Settlement settlement = settlementRepository.findById(settlementId)
         .orElseThrow(() -> new BusinessException(SettlementErrorCode.SETTLEMENT_NOT_FOUND));

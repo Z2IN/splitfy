@@ -48,7 +48,7 @@ public class SettlementService {
     long issuerId = authUser.userId();
     SettlementCalculation calculation = buildSettlementCalculation(request.payments());
 
-    // 1. 정산 요청에 대한 settlement, payment 요청 기록 (첫 번째 트랜잭션)
+    // 1. 정산 요청에 대한 settlement, payment 요청 기록
     Long settlementId = settlementRecordService.createSettlementRecord(
         issuerId,
         calculation.totalAmount(),
@@ -57,13 +57,11 @@ public class SettlementService {
         calculation.netBalance()
     );
 
-    // 2. 이체 실행 (두 번째 트랜잭션)
+    // 2. 이체 실행
     try {
-      settlementTransferService.executeTransfers(calculation.netBalance());
-      // 3. 이체 성공 시 settlement state 변경 (세 번째 트랜잭션)
-      settlementStatusService.updateSettlementStatus(settlementId, true);
+      settlementTransferService.executeTransfers(calculation.netBalance(), settlementId);
     } catch (Exception e) {
-      // 3. 이체 실패 시 settlement state 변경 (세 번째 트랜잭션)
+      // 3. 이체 실패 시 settlement state 변경
       settlementStatusService.updateSettlementStatus(settlementId, false);
     }
 
