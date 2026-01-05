@@ -19,6 +19,7 @@ import org.zzin.splitfy.common.exception.BusinessException;
 import org.zzin.splitfy.common.security.AuthUser;
 import org.zzin.splitfy.domain.auth.service.AuthInnerService;
 import org.zzin.splitfy.domain.settlement.dto.PaymentAllocationDto;
+import org.zzin.splitfy.domain.settlement.dto.SettlementCalculationResultDto;
 import org.zzin.splitfy.domain.settlement.dto.request.PaymentRequest;
 import org.zzin.splitfy.domain.settlement.dto.request.SettlementRequest;
 import org.zzin.splitfy.domain.settlement.dto.response.SettlementHistoryResponse;
@@ -46,7 +47,7 @@ public class SettlementService {
 
   public SettlementResponse createSettlement(AuthUser authUser, SettlementRequest request) {
     long issuerId = authUser.userId();
-    SettlementCalculation calculation = buildSettlementCalculation(request.payments());
+    SettlementCalculationResultDto calculation = buildSettlementCalculation(request.payments());
 
     // 1. 정산 요청에 대한 settlement, payment 요청 기록
     Long settlementId = settlementRecordService.createSettlementRecord(
@@ -68,7 +69,8 @@ public class SettlementService {
     return new SettlementResponse(settlementId);
   }
 
-  private SettlementCalculation buildSettlementCalculation(List<PaymentRequest> paymentRequests) {
+  private SettlementCalculationResultDto buildSettlementCalculation(
+      List<PaymentRequest> paymentRequests) {
     validatePaymentRequests(paymentRequests);
 
     Map<Long, Long> contributed = new HashMap<>();
@@ -91,7 +93,7 @@ public class SettlementService {
     long totalAmount = allocated.values().stream().mapToLong(Long::longValue).sum();
     Map<Long, Long> netBalance = calculateNetBalance(contributed, allocated);
 
-    return new SettlementCalculation(totalAmount, totalRemainder, netBalance);
+    return new SettlementCalculationResultDto(totalAmount, totalRemainder, netBalance);
   }
 
   /**
@@ -236,9 +238,5 @@ public class SettlementService {
         throw new BusinessException(SettlementErrorCode.DUPLICATE_ALLOCATION_TARGETS);
       }
     }
-  }
-
-  private record SettlementCalculation(long totalAmount, long totalRemainder,
-                                       Map<Long, Long> netBalance) {
   }
 }
