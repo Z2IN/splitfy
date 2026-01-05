@@ -14,6 +14,7 @@ import org.zzin.splitfy.domain.settlement.repository.PaymentRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementParticipantRepository;
 import org.zzin.splitfy.domain.settlement.repository.SettlementRepository;
 import org.zzin.splitfy.domain.settlement.service.SettlementTransferService;
+import org.zzin.splitfy.domain.settlement.service.SettlementStatusService;
 
 @ExtendWith(MockitoExtension.class)
 class SettlementTransferServiceTest {
@@ -33,6 +34,9 @@ class SettlementTransferServiceTest {
   @Mock
   private SettlementParticipantRepository settlementParticipantRepository;
 
+  @Mock
+  private SettlementStatusService settlementStatusService;
+
   @Test
   void executeTransfers_채무자와채권자가있을때_정상적으로이체가수행된다() {
     // given
@@ -42,13 +46,16 @@ class SettlementTransferServiceTest {
         3L, -4_000L    // 줄 사람
     );
 
-    settlementTransferService.executeTransfers(netBalance);
+    settlementTransferService.executeTransfers(netBalance, 10L);
 
     then(pointInnerService).should(times(1))
         .transferPoint(2L, 1L, 6_000L);
 
     then(pointInnerService).should(times(1))
         .transferPoint(3L, 1L, 4_000L);
+
+    then(settlementStatusService).should(times(1))
+        .updateSettlementStatus(10L, true);
 
     then(pointInnerService).shouldHaveNoMoreInteractions();
   }
@@ -61,11 +68,14 @@ class SettlementTransferServiceTest {
         3L, 0L          // 이체 대상 아님
     );
 
-    settlementTransferService.executeTransfers(netBalance);
+    settlementTransferService.executeTransfers(netBalance, 20L);
 
     then(pointInnerService).should(times(1))
         .transferPoint(2L, 1L, 5_000L);
 
     then(pointInnerService).shouldHaveNoMoreInteractions();
+
+    then(settlementStatusService).should(times(1))
+        .updateSettlementStatus(20L, true);
   }
 }

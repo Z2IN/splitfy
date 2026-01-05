@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.times;
 
 import java.util.List;
 import java.util.Map;
+import org.mockito.ArgumentMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -83,10 +84,11 @@ class SettlementRecordServiceTest {
           return payment;
         });
 
-    given(settlementParticipantRepository.saveAll(any(List.class)))
-        .willAnswer(invocation -> invocation.getArgument(0));
+    given(settlementParticipantRepository.saveAll(ArgumentMatchers
+        .<SettlementParticipant>anyList()))
+            .willAnswer(invocation -> invocation.getArgument(0));
 
-    given(paymentAllocationsRepository.saveAll(any(List.class)))
+    given(paymentAllocationsRepository.saveAll(ArgumentMatchers.<PaymentAllocations>anyList()))
         .willAnswer(invocation -> invocation.getArgument(0));
 
     Long settlementId = settlementRecordService.createSettlementRecord(
@@ -106,9 +108,9 @@ class SettlementRecordServiceTest {
         .save(any(Payment.class));
 
     then(settlementParticipantRepository).should(times(1))
-        .saveAll(any(List.class));
+        .saveAll(ArgumentMatchers.<SettlementParticipant>anyList());
 
     then(paymentAllocationsRepository).should(times(1))
-        .saveAll(any(List.class));
+        .saveAll(ArgumentMatchers.<PaymentAllocations>anyList());
   }
 }
