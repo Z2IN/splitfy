@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Captor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.zzin.splitfy.common.exception.BusinessException;
@@ -71,9 +72,11 @@ public class EventServiceTest {
   @Mock
   private EventNumberRepository eventNumberRepository;
 
+  @Captor
+  private ArgumentCaptor<List<EventNumber>> eventNumberListCaptor;
+
   @InjectMocks
   private EventService eventService;
-
 
   @Test
   void createEvent_정상적으로_이벤트와_번호판_생성() {
@@ -98,7 +101,7 @@ public class EventServiceTest {
     ReflectionTestUtils.setField(savedEvent, "id", 1L);
 
     given(eventRepository.save(any(Event.class))).willReturn(savedEvent);
-    ArgumentCaptor<List<EventNumber>> captor = ArgumentCaptor.forClass(List.class);
+    // given
 
     // when
     CreateEventResponse response = eventService.createEvent(request);
@@ -106,9 +109,9 @@ public class EventServiceTest {
     // then
     assertThat(response.eventId()).isEqualTo(1L);
     then(eventRepository).should(times(1)).save(any(Event.class));
-    then(eventNumberRepository).should(times(1)).saveAll(captor.capture());
+    then(eventNumberRepository).should(times(1)).saveAll(eventNumberListCaptor.capture());
 
-    List<EventNumber> numbers = captor.getValue();
+    List<EventNumber> numbers = eventNumberListCaptor.getValue();
 
     // 개수 및 보상 규칙 검증
     assertThat(numbers)
@@ -127,7 +130,6 @@ public class EventServiceTest {
         .extracting(EventNumber::getNumber)
         .containsExactlyInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
-
 
   @Test
   void getEvent_존재하는_이벤트조회_성공() {
@@ -236,7 +238,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-        0L);
+            0L);
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -266,7 +268,7 @@ public class EventServiceTest {
     given(waitingQueueRepository.save(any(WaitingQueue.class))).willReturn(savedQueue);
     given(
         eventQueryRepository.countAhead(anyLong(), any(LocalDateTime.class), anyLong())).willReturn(
-        4L); // 앞에 4명
+            4L); // 앞에 4명
 
     // when
     JoinQueueResponse response = eventService.joinQueue(eventId, new AuthUser(userId));
@@ -476,8 +478,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_NOT_FOUND.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -499,8 +501,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_NOT_STARTED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -522,8 +524,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.EVENT_ENDED.getMessage());
 
     then(eventQueryRepository).should(never()).findHeadForUpdate(anyLong());
   }
@@ -550,8 +552,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -574,8 +576,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NOT_YOUR_TURN.getMessage());
 
     then(eventQueryRepository).should(never()).findEventNumberForUpdate(anyLong(), anyInt());
   }
@@ -603,8 +605,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NUMBER_NOT_FOUND.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }
@@ -635,8 +637,8 @@ public class EventServiceTest {
     // when & then
     assertThatThrownBy(
         () -> eventService.selectEventNumber(request, eventId, new AuthUser(userId)))
-        .isInstanceOf(BusinessException.class)
-        .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
+            .isInstanceOf(BusinessException.class)
+            .hasMessage(EventErrorCode.NUMBER_ALREADY_TAKEN.getMessage());
 
     then(eventEntryRepository).should(never()).save(any());
   }

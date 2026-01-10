@@ -55,8 +55,8 @@ public class Settlement {
     this.status = SettlementStatus.PENDING;
   }
 
-  public Payment createPayment(long paidAmount, long payerId, String title) {
-    Payment payment = new Payment(paidAmount, payerId, paidAmount, title);
+  public Payment createPayment(long paidAmount, long payerId, long shareAmount, String title) {
+    Payment payment = new Payment(paidAmount, payerId, shareAmount, title);
     payment.setSettlementId(this.id);
     return payment;
   }

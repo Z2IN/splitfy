@@ -54,9 +54,13 @@ public class SettlementRecordService {
     // Payment 엔티티 생성 및 저장 + PaymentAllocations 저장
     List<PaymentAllocations> allAllocations = new ArrayList<>();
     for (PaymentRequest paymentRequest : paymentRequests) {
+      int allocationCount = paymentRequest.allocationIds().size();
+      long shareAmount = paymentRequest.paidAmount() / allocationCount;
+
       Payment payment = savedSettlement.createPayment(
           paymentRequest.paidAmount(),
           paymentRequest.payerId(),
+          shareAmount,
           paymentRequest.title()
       );
       payment = paymentRepository.save(payment);
